@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -20,6 +20,18 @@ import { ProgressBar } from "@/shared/ui/progress-bar";
 import { StickyBar } from "@/shared/ui/sticky-bar";
 
 const STEPS = ["Имена", "Срок", "Знакомство", "Цели"] as const;
+
+function focusNextOnEnter(event: KeyboardEvent<HTMLInputElement>, nextId: string) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  document.getElementById(nextId)?.focus();
+}
+
+function blurOnEnter(event: KeyboardEvent<HTMLInputElement>) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  event.currentTarget.blur();
+}
 
 function firstIssue(error: { issues: Array<{ message: string }> }): string {
   return error.issues[0]?.message ?? "Проверьте поле";
@@ -155,6 +167,7 @@ export function SetupPage() {
                     enterKeyHint="next"
                     value={draft.customYears}
                     onChange={(event) => update({ ...draft, customYears: event.target.value })}
+                    onKeyDown={(event) => focusNextOnEnter(event, "months")}
                   />
                 </div>
                 <div>
@@ -165,6 +178,7 @@ export function SetupPage() {
                     enterKeyHint="done"
                     value={draft.customMonths}
                     onChange={(event) => update({ ...draft, customMonths: event.target.value })}
+                    onKeyDown={blurOnEnter}
                   />
                 </div>
               </div>
@@ -287,6 +301,7 @@ function PersonStep({
           enterKeyHint="next"
           value={name}
           onChange={(event) => onName(event.target.value)}
+          onKeyDown={(event) => focusNextOnEnter(event, ageId)}
         />
       </div>
       <div className="mt-4">
@@ -298,6 +313,7 @@ function PersonStep({
           autoComplete="off"
           value={age}
           onChange={(event) => onAge(event.target.value.replace(/[^\d]/g, "").slice(0, 2))}
+          onKeyDown={blurOnEnter}
         />
       </div>
     </section>
