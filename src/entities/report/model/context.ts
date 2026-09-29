@@ -45,10 +45,6 @@ export function buildAnalysisInput(context: ReportContext): CompatibilityAnalysi
       total: evaluation.scoring.total,
       label: evaluation.scoring.label,
     },
-    predictions: {
-      player1Percent: evaluation.predictions.player1Percent,
-      player2Percent: evaluation.predictions.player2Percent,
-    },
     likelyTo: evaluation.likelyTo,
     achievements: evaluation.achievements,
   };
@@ -57,11 +53,6 @@ export function buildAnalysisInput(context: ReportContext): CompatibilityAnalysi
 export function attachLocalFacts(report: CompatibilityReport, context: ReportContext): CompatibilityReport {
   return {
     ...report,
-    partnerKnowledge: {
-      ...report.partnerKnowledge,
-      player1Score: context.evaluation.predictions.player1Percent,
-      player2Score: context.evaluation.predictions.player2Percent,
-    },
     likelyTo: context.evaluation.likelyTo,
     achievements: context.evaluation.achievements,
   };

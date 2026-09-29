@@ -6,14 +6,10 @@ export function buildShareText(input: {
   archetype: string;
   verdict: string;
 }): string {
-  return [
-    `${input.player1} × ${input.player2}`,
-    `${input.total}% — ${input.label}`,
-    input.archetype,
-    input.verdict,
-    "",
-    "Lovers Compatibility",
-  ].join("\n");
+  const lines = [`${input.player1} × ${input.player2}`];
+  if (input.total >= 75) lines.push(`${input.total}% — ${input.label}`);
+  lines.push(input.archetype, input.verdict, "", "Lovers Compatibility");
+  return lines.join("\n");
 }
 
 export async function shareResult(text: string): Promise<"shared" | "copied" | "cancelled" | "failed"> {

@@ -5,6 +5,5 @@ export type {
   Evaluation,
   EvaluationInput,
   LikelyItem,
-  PredictionStats,
   ScoreBreakdown,
 } from "./model/types";

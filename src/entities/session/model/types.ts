@@ -1,4 +1,4 @@
-import type { CompatibilityScore, PredictionStats } from "@/entities/compatibility/@x/session";
+import type { CompatibilityScore } from "@/entities/compatibility/@x/session";
 import type { CoupleDraft, CoupleProfile } from "@/entities/couple/@x/session";
 import type { AnswerValue, PlayerAnswer, Substep } from "@/entities/question/@x/session";
 import type { CompatibilityReport } from "@/entities/report/@x/session";
@@ -28,7 +28,6 @@ export interface QuizSession {
   player2: PlayerAnswers;
   player1Locked: boolean;
   scoring?: CompatibilityScore;
-  predictions?: PredictionStats;
   report?: CompatibilityReport;
   reportSource?: "ai" | "fallback";
   fallbackReason?: FallbackReason;

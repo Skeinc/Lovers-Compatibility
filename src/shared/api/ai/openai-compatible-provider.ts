@@ -24,11 +24,6 @@ function withLocalFacts(
 ): CompatibilityReport {
   return {
     ...narrative,
-    partnerKnowledge: {
-      player1Score: input.predictions.player1Percent,
-      player2Score: input.predictions.player2Percent,
-      explanation: narrative.partnerKnowledge.explanation,
-    },
     likelyTo: input.likelyTo,
     achievements: input.achievements,
   };

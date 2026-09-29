@@ -97,7 +97,6 @@ function finishPlayer(state: QuizSession): QuizSession {
     phase: "analyzing",
     player2: { ...state.player2, completedAt: now },
     scoring: evaluation.scoring,
-    predictions: evaluation.predictions,
   });
 }
 

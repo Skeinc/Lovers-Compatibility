@@ -38,7 +38,7 @@ export function isValueFilled(question: Question, value: AnswerValue | undefined
     const decoded = decodeWho(value);
     return (question.scenarios ?? []).every((scenario) => decoded.has(scenario.id));
   }
-  if (question.kind === "multi-predict") {
+  if (question.kind === "multi" || question.kind === "multi-predict") {
     return Array.isArray(value) && value.length > 0;
   }
   return typeof value === "string" && value.length > 0;

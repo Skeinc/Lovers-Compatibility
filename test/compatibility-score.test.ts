@@ -33,15 +33,13 @@ function aligned(player: 1 | 2): PlayerAnswer[] {
 describe("evaluateCompatibility", () => {
   const names = { player1Name: "Дима", player2Name: "Настя" };
 
-  it("is deterministic and reaches 100 when answers and predictions match", () => {
+  it("is deterministic and reaches 100 when the answers match", () => {
     const input = { ...names, player1: aligned(1), player2: aligned(2) };
     const first = evaluateCompatibility(input);
     const second = evaluateCompatibility(input);
     expect(first.scoring).toEqual(second.scoring);
     expect(first.scoring.total).toBe(100);
-    expect(first.scoring.label).toBe("Почти читаете мысли друг друга");
-    expect(first.predictions.player1Percent).toBe(100);
-    expect(first.predictions.player2Percent).toBe(100);
+    expect(first.scoring.label).toBe("Почти один ритм");
     expect(first.likelyTo).toHaveLength(6);
     expect(first.likelyTo.every((item) => item.person === "Дима")).toBe(true);
   });

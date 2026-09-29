@@ -33,7 +33,7 @@ export const QUESTIONS: readonly Question[] = [
   },
   {
     id: "after-conflict",
-    kind: "choice-predict",
+    kind: "choice",
     category: "dynamics",
     title: "После небольшой ссоры ты обычно...",
     description: "Не драма на три дня. Обычная искра.",
@@ -48,7 +48,7 @@ export const QUESTIONS: readonly Question[] = [
   },
   {
     id: "ideal-date",
-    kind: "choice-predict",
+    kind: "choice",
     category: "preferences",
     title: "Какое свидание ты правда считаешь идеальным?",
     description: "То, на которое согласишься даже в уставший четверг.",
@@ -63,7 +63,7 @@ export const QUESTIONS: readonly Question[] = [
   },
   {
     id: "future-irritation",
-    kind: "multi-predict",
+    kind: "multi",
     category: "dynamics",
     title: "Что из этого скорее всего начнёт раздражать тебя через год совместной жизни?",
     description: "Можно несколько. «Ничего из этого» — отдельный честный ответ.",
@@ -79,7 +79,7 @@ export const QUESTIONS: readonly Question[] = [
   },
   {
     id: "extra-hours",
-    kind: "choice-predict",
+    kind: "choice",
     category: "values",
     title: "Зарплата выше на 30%, но в неделе на 10 рабочих часов больше. Берёшь?",
     description: "Не теория карьеры. Этот конкретный обмен.",
@@ -93,7 +93,7 @@ export const QUESTIONS: readonly Question[] = [
   },
   {
     id: "lost-in-city",
-    kind: "choice-predict",
+    kind: "choice",
     category: "preferences",
     title: "Вы заблудились в незнакомом городе. Что происходит?",
     description: "Карта врёт, ноги уже гудят, кафе где-то рядом.",
@@ -146,7 +146,7 @@ export const QUESTIONS: readonly Question[] = [
   },
   {
     id: "three-words",
-    kind: "text-predict",
+    kind: "text",
     category: "text",
     title: "Опишите ваши отношения тремя словами.",
     description: "Именно три. Можно смешные.",

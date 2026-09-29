@@ -3,7 +3,7 @@ import type { PlayerAnswer, Substep } from "@/entities/question/@x/session";
 
 import { useSessionContext } from "./context";
 import type { FallbackReason, Phase, QuizSession } from "./types";
-import type { CompatibilityScore, PredictionStats } from "@/entities/compatibility/@x/session";
+import type { CompatibilityScore } from "@/entities/compatibility/@x/session";
 import type { CompatibilityReport } from "@/entities/report/@x/session";
 
 export interface PlayerQuizView {
@@ -20,7 +20,6 @@ export interface PlayerQuizView {
 export interface ComparisonView {
   couple: CoupleProfile;
   scoring: CompatibilityScore;
-  predictions: PredictionStats;
   report?: CompatibilityReport;
   reportSource?: "ai" | "fallback";
   fallbackReason?: FallbackReason;
@@ -73,18 +72,12 @@ export function useHandoff(): { partnerName: string; locked: boolean } | null {
 
 export function useComparison(): ComparisonView | null {
   const { session } = useSessionContext();
-  if (
-    (session.phase !== "analyzing" && session.phase !== "results") ||
-    !session.couple ||
-    !session.scoring ||
-    !session.predictions
-  ) {
+  if ((session.phase !== "analyzing" && session.phase !== "results") || !session.couple || !session.scoring) {
     return null;
   }
   return {
     couple: session.couple,
     scoring: session.scoring,
-    predictions: session.predictions,
     report: session.report,
     reportSource: session.reportSource,
     fallbackReason: session.fallbackReason,

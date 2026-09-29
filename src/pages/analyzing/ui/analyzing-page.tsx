@@ -9,10 +9,12 @@ import { EmojiMark } from "@/shared/ui/emoji-mark";
 
 const LINES = [
   { symbol: "🔍", text: "Сравниваем ответы" },
-  { symbol: "👀", text: "Проверяем, насколько вы угадываете друг друга" },
+  { symbol: "✨", text: "Ищем, где вы совпали и где разошлись" },
   { symbol: "✨", text: "Ищем неожиданные совпадения" },
   { symbol: "💌", text: "Собираем портрет вашей пары" },
 ];
+
+const LINE_MS = 1500;
 
 export function AnalyzingPage() {
   const comparison = useComparison();
@@ -22,10 +24,10 @@ export function AnalyzingPage() {
   const started = useRef(false);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setLine((current) => (current + 1) % LINES.length);
-    }, 1000);
-    return () => window.clearInterval(timer);
+    const timers = LINES.map((_, index) => window.setTimeout(() => setLine(index), index * LINE_MS));
+    return () => {
+      for (const timer of timers) window.clearTimeout(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export function AnalyzingPage() {
       player2: snapshot.player2Answers,
       evaluation,
     }).then(async (outcome) => {
-      const wait = 4000 - (Date.now() - startedAt);
+      const wait = LINES.length * LINE_MS - (Date.now() - startedAt);
       if (wait > 0) await new Promise((resolve) => window.setTimeout(resolve, wait));
       dispatch({
         type: "set-report",
@@ -59,11 +61,13 @@ export function AnalyzingPage() {
 
   return (
     <Screen centered>
-      <EmojiMark symbol={LINES[line]?.symbol ?? "✨"} />
-      <p className="mt-6 text-sm tracking-[0.18em] text-accent uppercase">Разбираем ваши ответы</p>
-      <h1 className="mt-4 font-serif text-5xl leading-tight" aria-live="polite">
-        {LINES[line]?.text}
-      </h1>
+      <div key={line} className="line-fade flex flex-col items-center">
+        <EmojiMark symbol={LINES[line]?.symbol ?? "✨"} />
+        <p className="mt-6 text-sm tracking-[0.18em] text-accent uppercase">Разбираем ваши ответы</p>
+        <h1 className="mt-4 font-serif text-5xl leading-tight" aria-live="polite">
+          {LINES[line]?.text}
+        </h1>
+      </div>
       <p className="mt-4 max-w-sm text-base text-muted">Это займёт несколько секунд. Тест уже сохранён на телефоне.</p>
     </Screen>
   );

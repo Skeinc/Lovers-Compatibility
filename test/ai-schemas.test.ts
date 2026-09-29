@@ -16,10 +16,6 @@ describe("aiNarrativeSchema", () => {
       strengths: [{ title: "Деньги", description: "Оба отложили бы внезапную сумму." }],
       differences: [{ title: "Выходной", description: "Один остаётся дома, второй уже смотрит билеты." }],
       surprisingAnswers: [],
-      partnerKnowledge: {
-        explanation: "Оба угадывают чуть лучше случайности.",
-        player1Score: 1000,
-      },
       roast: "Билеты и плед пока живут в разных головах. Хорошо, что ссора у вас короткая.",
       positiveObservation: "В тексте про черту партнёра есть конкретная нежность.",
       finalVerdict: "Вы не одинаковые — и по ответам вам это не мешает.",

@@ -6,16 +6,6 @@ import { exactMatch, jaccard, textMatch } from "./compare";
 import { buildLikelyTo, countWhoAgreements } from "./likely-to";
 import type { Evaluation, EvaluationInput, ScoreBreakdown } from "./types";
 
-const PREDICTION_IDS = [
-  "perfect-weekend",
-  "surprise-money",
-  "after-conflict",
-  "ideal-date",
-  "future-irritation",
-  "extra-hours",
-  "lost-in-city",
-] as const;
-
 function answerOf(answers: PlayerAnswer[], questionId: string): PlayerAnswer | undefined {
   return answers.find((item) => item.questionId === questionId);
 }
@@ -24,24 +14,12 @@ function actual(answers: PlayerAnswer[], questionId: string): AnswerValue | unde
   return answerOf(answers, questionId)?.answer;
 }
 
-function predicted(answers: PlayerAnswer[], questionId: string): AnswerValue | undefined {
-  return answerOf(answers, questionId)?.prediction;
-}
-
 export function scoreLabel(total: number): string {
-  if (total >= 90) return "Почти читаете мысли друг друга";
-  if (total >= 75) return "Очень хорошо считываете друг друга";
-  if (total >= 60) return "Хорошо понимаете друг друга";
+  if (total >= 90) return "Почти один ритм";
+  if (total >= 75) return "Очень близко смотрите на жизнь";
+  if (total >= 60) return "В главном вы совпадаете";
   if (total >= 45) return "Вы разные, и в этом есть химия";
-  return "Загадка друг для друга";
-}
-
-function predictionRaw(guesser: PlayerAnswer[], subject: PlayerAnswer[]): number {
-  let hits = 0;
-  for (const questionId of PREDICTION_IDS) {
-    if (exactMatch(predicted(guesser, questionId), actual(subject, questionId))) hits += 1;
-  }
-  return hits + textMatch(predicted(guesser, "three-words"), actual(subject, "three-words"));
+  return "Свой вкус у каждого";
 }
 
 function round2(value: number): number {
@@ -50,62 +28,41 @@ function round2(value: number): number {
 
 export function evaluateCompatibility(input: EvaluationInput): Evaluation {
   const { player1, player2 } = input;
-  const weekend = exactMatch(actual(player1, "perfect-weekend"), actual(player2, "perfect-weekend"));
-  const date = exactMatch(actual(player1, "ideal-date"), actual(player2, "ideal-date"));
-  const city = exactMatch(actual(player1, "lost-in-city"), actual(player2, "lost-in-city"));
-  const commonPreferences = (weekend ? 7 : 0) + (date ? 7 : 0) + (city ? 6 : 0);
+  const weekend = exactMatch(actual(player1, "perfect-weekend"), actual(player2, "perfect-weekend")) ? 10 : 0;
+  const date = exactMatch(actual(player1, "ideal-date"), actual(player2, "ideal-date")) ? 10 : 0;
+  const city = exactMatch(actual(player1, "lost-in-city"), actual(player2, "lost-in-city")) ? 8 : 0;
+  const commonPreferences = weekend + date + city;
 
-  const money = exactMatch(actual(player1, "surprise-money"), actual(player2, "surprise-money"));
-  const hours = exactMatch(actual(player1, "extra-hours"), actual(player2, "extra-hours"));
-  const values = (money ? 12 : 0) + (hours ? 13 : 0);
+  const money = exactMatch(actual(player1, "surprise-money"), actual(player2, "surprise-money")) ? 16 : 0;
+  const hours = exactMatch(actual(player1, "extra-hours"), actual(player2, "extra-hours")) ? 16 : 0;
+  const values = money + hours;
 
-  const player1Raw = predictionRaw(player1, player2);
-  const player2Raw = predictionRaw(player2, player1);
-  const predictionAccuracy = round2(((player1Raw + player2Raw) / 2 / 8) * 30);
-
-  const conflict = exactMatch(actual(player1, "after-conflict"), actual(player2, "after-conflict")) ? 5 : 0;
-  const irritation = jaccard(actual(player1, "future-irritation"), actual(player2, "future-irritation")) * 4;
+  const conflict = exactMatch(actual(player1, "after-conflict"), actual(player2, "after-conflict")) ? 7 : 0;
+  const irritation = jaccard(actual(player1, "future-irritation"), actual(player2, "future-irritation")) * 6;
   const whoAgreements = countWhoAgreements(
     actual(player1, "who-is-more-likely"),
     actual(player2, "who-is-more-likely"),
   );
-  const relationshipDynamics = round2(conflict + irritation + (whoAgreements / 6) * 6);
+  const whoScore = (whoAgreements / 6) * 8;
+  const relationshipDynamics = round2(conflict + irritation + whoScore);
 
+  const freeYear = textMatch(actual(player1, "free-year"), actual(player2, "free-year"));
   const threeWordsSimilarity = textMatch(actual(player1, "three-words"), actual(player2, "three-words"));
-  const textSimilarityScore = round2(
-    textMatch(actual(player1, "free-year"), actual(player2, "free-year")) * 4 + threeWordsSimilarity * 6,
-  );
+  const textSimilarityScore = round2(freeYear * 6 + threeWordsSimilarity * 13);
 
   const breakdown: ScoreBreakdown = {
     commonPreferences,
     values,
-    predictionAccuracy,
     relationshipDynamics,
     textSimilarity: textSimilarityScore,
   };
   const precise =
-    breakdown.commonPreferences +
-    breakdown.values +
-    ((player1Raw + player2Raw) / 2 / 8) * 30 +
-    conflict +
-    irritation +
-    (whoAgreements / 6) * 6 +
-    textMatch(actual(player1, "free-year"), actual(player2, "free-year")) * 4 +
-    threeWordsSimilarity * 6;
+    commonPreferences + values + conflict + irritation + whoScore + freeYear * 6 + threeWordsSimilarity * 13;
   const total = Math.max(0, Math.min(100, Math.round(precise)));
-  const predictions = {
-    player1Raw,
-    player2Raw,
-    total: 8 as const,
-    player1Percent: Math.round((player1Raw / 8) * 100),
-    player2Percent: Math.round((player2Raw / 8) * 100),
-  };
-  const preferenceMatches = Number(weekend) + Number(date) + Number(city);
-  const moneyMatches = Number(money) + Number(hours);
+  const preferenceMatches = Number(weekend > 0) + Number(date > 0) + Number(city > 0);
+  const moneyMatches = Number(money > 0) + Number(hours > 0);
   const scoring = { total, label: scoreLabel(total), breakdown };
   const achievements = buildAchievements({
-    player1Percent: predictions.player1Percent,
-    player2Percent: predictions.player2Percent,
     preferenceMatches,
     moneyMatches,
     whoAgreements,
@@ -115,7 +72,6 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
 
   return {
     scoring,
-    predictions,
     achievements,
     likelyTo: buildLikelyTo(
       actual(player1, "who-is-more-likely"),

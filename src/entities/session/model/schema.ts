@@ -11,18 +11,9 @@ const scoreSchema = z.object({
   breakdown: z.object({
     commonPreferences: z.number(),
     values: z.number(),
-    predictionAccuracy: z.number(),
     relationshipDynamics: z.number(),
     textSimilarity: z.number(),
   }),
-});
-
-const predictionsSchema = z.object({
-  player1Raw: z.number(),
-  player2Raw: z.number(),
-  total: z.literal(8),
-  player1Percent: z.number(),
-  player2Percent: z.number(),
 });
 
 export const quizSessionSchema = z.object({
@@ -68,7 +59,6 @@ export const quizSessionSchema = z.object({
   }),
   player1Locked: z.boolean(),
   scoring: scoreSchema.optional(),
-  predictions: predictionsSchema.optional(),
   report: compatibilityReportSchema.optional(),
   reportSource: z.enum(["ai", "fallback"]).optional(),
   fallbackReason: z.enum(["missing-config", "error"]).optional(),

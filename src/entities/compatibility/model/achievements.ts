@@ -1,8 +1,6 @@
 import type { Achievement } from "./types";
 
 export interface AchievementSignals {
-  player1Percent: number;
-  player2Percent: number;
   preferenceMatches: number;
   moneyMatches: number;
   whoAgreements: number;
@@ -11,23 +9,8 @@ export interface AchievementSignals {
 }
 
 export function buildAchievements(signals: AchievementSignals): Achievement[] {
-  const averagePrediction = (signals.player1Percent + signals.player2Percent) / 2;
   const earned: Achievement[] = [];
 
-  if (signals.player1Percent >= 75 && signals.player2Percent >= 75) {
-    earned.push({
-      icon: "🔮",
-      title: "Читатели мыслей",
-      description: "Оба довольно точно угадывают выборы друг друга.",
-    });
-  }
-  if (signals.player1Percent === 100 || signals.player2Percent === 100) {
-    earned.push({
-      icon: "📖",
-      title: "Открытая книга",
-      description: "Один из вас угадал ответы партнёра без промаха.",
-    });
-  }
   if (signals.preferenceMatches === 3) {
     earned.push({
       icon: "🧠",
@@ -54,20 +37,6 @@ export function buildAchievements(signals: AchievementSignals): Achievement[] {
       icon: "✉️",
       title: "Одни слова",
       description: "Три слова об отношениях у вас заметно перекликаются.",
-    });
-  }
-  if (signals.preferenceMatches <= 1 && averagePrediction >= 70) {
-    earned.push({
-      icon: "👁",
-      title: "Разные, но внимательные",
-      description: "Вкусы расходятся, но вы всё равно неплохо считываете друг друга.",
-    });
-  }
-  if (signals.preferenceMatches >= 2 && averagePrediction < 50) {
-    earned.push({
-      icon: "🪞",
-      title: "Синхрон без телепатии",
-      description: "Живёте похоже, а угадывать ответы друг друга пока сложнее.",
     });
   }
   if (signals.total >= 80) {

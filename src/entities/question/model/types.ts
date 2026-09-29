@@ -1,4 +1,5 @@
-export type QuestionKind = "choice-predict" | "multi-predict" | "text" | "text-predict" | "who-likely";
+export type QuestionKind =
+  "choice" | "choice-predict" | "multi" | "multi-predict" | "text" | "text-predict" | "who-likely";
 
 export type QuestionCategory = "preferences" | "values" | "dynamics" | "text" | "narrative";
 

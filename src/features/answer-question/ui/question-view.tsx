@@ -73,7 +73,7 @@ export function QuestionView({
           key={option.id}
           selected={selected.includes(option.id)}
           onClick={() => {
-            if (question.kind === "multi-predict") {
+            if (question.kind === "multi" || question.kind === "multi-predict") {
               onChange(toggleMulti(selected, option.id, option.exclusive === true));
               return;
             }

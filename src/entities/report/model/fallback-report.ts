@@ -33,28 +33,21 @@ function labels(questionId: string, value: AnswerValue | undefined): string {
 function archetypeOf(context: ReportContext): CompatibilityReport["archetype"] {
   const { breakdown } = context.evaluation.scoring;
   const match = breakdown.commonPreferences + breakdown.values + breakdown.relationshipDynamics;
-  const reading = breakdown.predictionAccuracy;
-  if (match >= 42 && reading >= 21) {
+  if (match >= 70) {
     return {
-      name: "Один мозг на двоих",
-      description: "Вы часто выбираете одно и то же и ещё успеваете угадать выбор друг друга.",
+      name: "Один ритм",
+      description: "В быту, деньгах и выходных вы часто выбираете одну и ту же сторону.",
     };
   }
-  if (match >= 42 && reading < 15) {
+  if (match >= 40) {
     return {
-      name: "Синхрон без телепатии",
-      description: "Живёте похоже, а вот мысли друг друга пока читаете с переменным успехом.",
-    };
-  }
-  if (match < 24 && reading >= 21) {
-    return {
-      name: "Разные, но внимательные",
-      description: "Маршруты у вас разные, но вы неплохо замечаете, куда свернёт партнёр.",
+      name: "Рядом, но не копия",
+      description: "Часть жизни у вас общая, а часть каждый видит по-своему. В этом и есть сюжет.",
     };
   }
   return {
-    name: "Мы просто любим по-разному",
-    description: "В ответах нет одного общего шаблона — и тест это честно показывает.",
+    name: "Два вкуса, одна пара",
+    description: "Вы часто выбираете по-разному, и в этом как раз есть характер. Одинаковый бланк тут ни к чему.",
   };
 }
 
@@ -112,9 +105,9 @@ export function buildFallbackReport(context: ReportContext): CompatibilityReport
       ? strengths
       : [
           {
-            title: "Пока без общего выбора",
+            title: "У каждого свой вкус",
             description:
-              "По этим ответам нельзя уверенно определить одну общую привычку: в сравнимых вопросах вы разошлись.",
+              "В готовых вариантах вы чаще выбираете разное. Это не оценка отношений, а просто разные ответы.",
           },
         ];
   const safeDifferences =
@@ -130,21 +123,19 @@ export function buildFallbackReport(context: ReportContext): CompatibilityReport
 
   return {
     archetype: archetypeOf(context),
-    summary: `${player1.name} и ${player2.name} набрали ${evaluation.scoring.total}% — ${evaluation.scoring.label.charAt(0).toLowerCase()}${evaluation.scoring.label.slice(1)}. Это собрано только из ваших ответов на одни и те же 12 вопросов.`,
+    summary:
+      evaluation.scoring.total >= 75
+        ? `${player1.name} и ${player2.name} часто выбирают одну сторону: ${evaluation.scoring.total}% совпадения в ответах.`
+        : `${player1.name} и ${player2.name} ответили про одну и ту же жизнь. Где вкусы совпали — это тепло, где разошлись — это характер, а не минус.`,
     strengths: safeStrengths,
     differences: safeDifferences,
     surprisingAnswers: surprising,
-    partnerKnowledge: {
-      player1Score: evaluation.predictions.player1Percent,
-      player2Score: evaluation.predictions.player2Percent,
-      explanation: `${player1.name} → ${player2.name}: ${evaluation.predictions.player1Percent}%. ${player2.name} → ${player1.name}: ${evaluation.predictions.player2Percent}%. Это не соревнование, а то, насколько ваши ожидания попали в реальные ответы.`,
-    },
     likelyTo: evaluation.likelyTo,
     roast:
       firstDifference?.description ??
       "Подколоть почти нечем: в вариантах ответа вы стояли на одной стороне. Осторожнее, а то гости решат, что вы сговорились.",
     positiveObservation: traitText
-      ? `${player1.name} отдельно отмечает: «${traitText}». Такие детали в тесте обычно точнее любых процентов.`
+      ? `${player1.name} отдельно отмечает: «${traitText}». Такие детали обычно точнее любого общего вывода.`
       : "Вы оба дошли до конца и ответили про одну и ту же жизнь, а не про абстрактную пару из интернета.",
     finalVerdict:
       evaluation.scoring.total >= 75

@@ -15,6 +15,7 @@ export function QuizFlow() {
   const { dispatch } = useSessionActions();
   const navigate = useNavigate();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
   const question = quiz ? QUESTIONS[quiz.questionIndex] : undefined;
   const saved = question ? quiz?.answers.find((item) => item.questionId === question.id) : undefined;
   const stored = quiz?.substep === "predict" ? saved?.prediction : saved?.answer;
@@ -59,33 +60,47 @@ export function QuizFlow() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col gap-6 py-6">
+      <div className="flex flex-1 flex-col gap-6 overflow-x-clip py-6">
         <ProgressBar value={progress} label={`Вопрос ${quiz.questionIndex + 1} из ${QUESTIONS.length}`} />
-        <div>
-          <p className="text-sm tracking-[0.16em] text-accent uppercase">
-            <span aria-hidden="true">{predicting ? "👀 " : "✍️ "}</span>
-            {predicting ? "Про партнёра" : "Про тебя"}
-          </p>
-          <h1 className="mt-3 font-serif text-4xl leading-tight text-balance">{title}</h1>
-          <p className="mt-3 text-base leading-relaxed text-muted">
-            {title === question.title ? question.description : question.title}
-          </p>
-          {title !== question.title && question.description ? (
-            <p className="mt-2 text-sm leading-relaxed text-muted">{question.description}</p>
-          ) : null}
+        <div key={stepKey} className={`flex flex-col gap-6 ${direction === "back" ? "step-back" : "step-forward"}`}>
+          <div>
+            <p className="text-sm tracking-[0.16em] text-accent uppercase">
+              <span aria-hidden="true">{predicting ? "👀 " : "✍️ "}</span>
+              {predicting ? "Про партнёра" : "Про тебя"}
+            </p>
+            <h1 className="mt-3 font-serif text-4xl leading-tight text-balance">{title}</h1>
+            <p className="mt-3 text-base leading-relaxed text-muted">
+              {title === question.title ? question.description : question.title}
+            </p>
+            {title !== question.title && question.description ? (
+              <p className="mt-2 text-sm leading-relaxed text-muted">{question.description}</p>
+            ) : null}
+          </div>
+          <QuestionView
+            question={question}
+            value={draft}
+            selfName={quiz.selfName}
+            partnerName={quiz.partnerName}
+            onChange={persist}
+          />
         </div>
-        <QuestionView
-          question={question}
-          value={draft}
-          selfName={quiz.selfName}
-          partnerName={quiz.partnerName}
-          onChange={persist}
-        />
       </div>
       <StickyBar>
         <div className="flex gap-3">
-          <BackButton onClick={() => dispatch({ type: "back" })} />
-          <Button className="w-auto min-w-0 flex-1" disabled={!filled} onClick={continueQuiz}>
+          <BackButton
+            onClick={() => {
+              setDirection("back");
+              dispatch({ type: "back" });
+            }}
+          />
+          <Button
+            className="w-auto min-w-0 flex-1"
+            disabled={!filled}
+            onClick={() => {
+              setDirection("forward");
+              continueQuiz();
+            }}
+          >
             {isFinal ? "Завершить" : "Дальше"}
           </Button>
         </div>

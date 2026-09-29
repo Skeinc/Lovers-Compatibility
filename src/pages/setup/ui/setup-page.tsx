@@ -70,6 +70,7 @@ export function SetupPage() {
   const { draft, setupStep, dispatch } = useCoupleDraft();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
   const step = Math.min(setupStep, 4);
 
   function update(next: CoupleDraft, nextStep = step) {
@@ -106,6 +107,7 @@ export function SetupPage() {
     }
     setError(null);
     if (step < 4) {
+      setDirection("forward");
       update(draft, step + 1);
       return;
     }
@@ -120,138 +122,140 @@ export function SetupPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex flex-1 flex-col gap-6 py-6">
+      <div className="flex flex-1 flex-col gap-6 overflow-x-clip py-6">
         <ProgressBar value={((step + 1) / 5) * 100} label={`Шаг ${step + 1} из 5`} />
-        {step === 0 ? (
-          <PersonStep
-            kicker="Партнёр 1"
-            title="С кого начнём?"
-            name={draft.player1Name}
-            age={draft.player1Age}
-            onName={(player1Name) => update({ ...draft, player1Name })}
-            onAge={(player1Age) => update({ ...draft, player1Age })}
-          />
-        ) : null}
-        {step === 1 ? (
-          <PersonStep
-            kicker="Партнёр 2"
-            title="И второй человек"
-            name={draft.player2Name}
-            age={draft.player2Age}
-            onName={(player2Name) => update({ ...draft, player2Name })}
-            onAge={(player2Age) => update({ ...draft, player2Age })}
-          />
-        ) : null}
-        {step === 2 ? (
-          <section>
-            <p className="text-sm tracking-[0.16em] text-accent uppercase">Отношения</p>
-            <h1 className="mt-3 font-serif text-4xl">Как давно вы вместе?</h1>
-            <div className="mt-5 flex flex-col gap-3">
-              {DURATION_OPTIONS.map((option) => (
-                <ChoiceButton
-                  key={option.id}
-                  selected={draft.relationshipDuration === option.id}
-                  onClick={() => update({ ...draft, relationshipDuration: option.id })}
-                >
-                  {option.label}
-                </ChoiceButton>
-              ))}
-            </div>
-            {draft.relationshipDuration === "custom" ? (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div>
-                  <FieldLabel htmlFor="years">Лет</FieldLabel>
-                  <TextInput
-                    id="years"
-                    inputMode="numeric"
-                    enterKeyHint="next"
-                    value={draft.customYears}
-                    onChange={(event) => update({ ...draft, customYears: event.target.value })}
-                    onKeyDown={(event) => focusNextOnEnter(event, "months")}
-                  />
-                </div>
-                <div>
-                  <FieldLabel htmlFor="months">Месяцев</FieldLabel>
-                  <TextInput
-                    id="months"
-                    inputMode="numeric"
-                    enterKeyHint="done"
-                    value={draft.customMonths}
-                    onChange={(event) => update({ ...draft, customMonths: event.target.value })}
-                    onKeyDown={blurOnEnter}
-                  />
-                </div>
+        <div key={step} className={`flex flex-col gap-6 ${direction === "back" ? "step-back" : "step-forward"}`}>
+          {step === 0 ? (
+            <PersonStep
+              kicker="Партнёр 1"
+              title="С кого начнём?"
+              name={draft.player1Name}
+              age={draft.player1Age}
+              onName={(player1Name) => update({ ...draft, player1Name })}
+              onAge={(player1Age) => update({ ...draft, player1Age })}
+            />
+          ) : null}
+          {step === 1 ? (
+            <PersonStep
+              kicker="Партнёр 2"
+              title="И второй человек"
+              name={draft.player2Name}
+              age={draft.player2Age}
+              onName={(player2Name) => update({ ...draft, player2Name })}
+              onAge={(player2Age) => update({ ...draft, player2Age })}
+            />
+          ) : null}
+          {step === 2 ? (
+            <section>
+              <p className="text-sm tracking-[0.16em] text-accent uppercase">Отношения</p>
+              <h1 className="mt-3 font-serif text-4xl">Как давно вы вместе?</h1>
+              <div className="mt-5 flex flex-col gap-3">
+                {DURATION_OPTIONS.map((option) => (
+                  <ChoiceButton
+                    key={option.id}
+                    selected={draft.relationshipDuration === option.id}
+                    onClick={() => update({ ...draft, relationshipDuration: option.id })}
+                  >
+                    {option.label}
+                  </ChoiceButton>
+                ))}
               </div>
-            ) : null}
-          </section>
-        ) : null}
-        {step === 3 ? (
-          <section>
-            <p className="text-sm tracking-[0.16em] text-accent uppercase">История</p>
-            <h1 className="mt-3 font-serif text-4xl">Как вы познакомились?</h1>
-            <div className="mt-5 flex flex-col gap-3">
-              {HOW_MET_LABELS.map((option) => (
-                <ChoiceButton
-                  key={option.id}
-                  selected={draft.howMet === option.id}
-                  onClick={() => update({ ...draft, howMet: option.id })}
-                >
-                  {option.label}
-                </ChoiceButton>
-              ))}
-            </div>
-            <div className="mt-4">
-              <FieldLabel htmlFor="met">Ваша версия в одном предложении</FieldLabel>
-              <TextArea
-                id="met"
-                placeholder="Необязательно"
-                value={draft.howMetDetails}
-                onChange={(event) => update({ ...draft, howMetDetails: event.target.value })}
-              />
-            </div>
-          </section>
-        ) : null}
-        {step === 4 ? (
-          <section>
-            <p className="text-sm tracking-[0.16em] text-accent uppercase">Сейчас</p>
-            <h1 className="mt-3 font-serif text-4xl">Что вам сейчас важнее всего как паре?</h1>
-            <p className="mt-3 text-base text-muted">
-              Можно несколько. На процент это почти не влияет — пригодится разбору.
-            </p>
-            <div className="mt-5 flex flex-col gap-3">
-              {GOAL_OPTIONS.map((option) => (
-                <ChoiceButton
-                  key={option.id}
-                  selected={draft.goals.includes(option.id)}
-                  onClick={() => {
-                    const goals = draft.goals.includes(option.id)
-                      ? draft.goals.filter((goal) => goal !== option.id)
-                      : [...draft.goals, option.id];
-                    update({ ...draft, goals });
-                  }}
-                >
-                  {option.label}
-                </ChoiceButton>
-              ))}
-            </div>
-            {draft.goals.includes("other") ? (
+              {draft.relationshipDuration === "custom" ? (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <FieldLabel htmlFor="years">Лет</FieldLabel>
+                    <TextInput
+                      id="years"
+                      inputMode="numeric"
+                      enterKeyHint="next"
+                      value={draft.customYears}
+                      onChange={(event) => update({ ...draft, customYears: event.target.value })}
+                      onKeyDown={(event) => focusNextOnEnter(event, "months")}
+                    />
+                  </div>
+                  <div>
+                    <FieldLabel htmlFor="months">Месяцев</FieldLabel>
+                    <TextInput
+                      id="months"
+                      inputMode="numeric"
+                      enterKeyHint="done"
+                      value={draft.customMonths}
+                      onChange={(event) => update({ ...draft, customMonths: event.target.value })}
+                      onKeyDown={blurOnEnter}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+          {step === 3 ? (
+            <section>
+              <p className="text-sm tracking-[0.16em] text-accent uppercase">История</p>
+              <h1 className="mt-3 font-serif text-4xl">Как вы познакомились?</h1>
+              <div className="mt-5 flex flex-col gap-3">
+                {HOW_MET_LABELS.map((option) => (
+                  <ChoiceButton
+                    key={option.id}
+                    selected={draft.howMet === option.id}
+                    onClick={() => update({ ...draft, howMet: option.id })}
+                  >
+                    {option.label}
+                  </ChoiceButton>
+                ))}
+              </div>
               <div className="mt-4">
-                <FieldLabel htmlFor="goal-other">Что именно</FieldLabel>
-                <TextInput
-                  id="goal-other"
-                  value={draft.goalsOther}
-                  onChange={(event) => update({ ...draft, goalsOther: event.target.value })}
+                <FieldLabel htmlFor="met">Ваша версия в одном предложении</FieldLabel>
+                <TextArea
+                  id="met"
+                  placeholder="Необязательно"
+                  value={draft.howMetDetails}
+                  onChange={(event) => update({ ...draft, howMetDetails: event.target.value })}
                 />
               </div>
-            ) : null}
-          </section>
-        ) : null}
-        {error ? (
-          <p className="text-sm text-[#e7c2b0]" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <p className="sr-only">{STEPS[Math.min(step, 3)]}</p>
+            </section>
+          ) : null}
+          {step === 4 ? (
+            <section>
+              <p className="text-sm tracking-[0.16em] text-accent uppercase">Сейчас</p>
+              <h1 className="mt-3 font-serif text-4xl">Что вам сейчас важнее всего как паре?</h1>
+              <p className="mt-3 text-base text-muted">
+                Можно несколько. На процент это почти не влияет — пригодится разбору.
+              </p>
+              <div className="mt-5 flex flex-col gap-3">
+                {GOAL_OPTIONS.map((option) => (
+                  <ChoiceButton
+                    key={option.id}
+                    selected={draft.goals.includes(option.id)}
+                    onClick={() => {
+                      const goals = draft.goals.includes(option.id)
+                        ? draft.goals.filter((goal) => goal !== option.id)
+                        : [...draft.goals, option.id];
+                      update({ ...draft, goals });
+                    }}
+                  >
+                    {option.label}
+                  </ChoiceButton>
+                ))}
+              </div>
+              {draft.goals.includes("other") ? (
+                <div className="mt-4">
+                  <FieldLabel htmlFor="goal-other">Что именно</FieldLabel>
+                  <TextInput
+                    id="goal-other"
+                    value={draft.goalsOther}
+                    onChange={(event) => update({ ...draft, goalsOther: event.target.value })}
+                  />
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+          {error ? (
+            <p className="text-sm text-[#e7c2b0]" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <p className="sr-only">{STEPS[Math.min(step, 3)]}</p>
+        </div>
       </div>
       <StickyBar>
         <div className="flex gap-3">
@@ -259,6 +263,7 @@ export function SetupPage() {
             <BackButton
               onClick={() => {
                 setError(null);
+                setDirection("back");
                 update(draft, step - 1);
               }}
             />

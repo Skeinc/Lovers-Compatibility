@@ -14,9 +14,6 @@ export const aiNarrativeSchema = z.object({
   strengths: z.array(cardSchema).min(1).max(4),
   differences: z.array(cardSchema).min(1).max(4),
   surprisingAnswers: z.array(cardSchema).max(4),
-  partnerKnowledge: z.object({
-    explanation: z.string().trim().min(1).max(700),
-  }),
   roast: z.string().trim().min(1).max(700),
   positiveObservation: z.string().trim().min(1).max(700),
   finalVerdict: z.string().trim().min(1).max(400),
@@ -36,11 +33,6 @@ export const compatibilityReportSchema = z.object({
       description: z.string().trim().min(1),
     }),
   ),
-  partnerKnowledge: z.object({
-    player1Score: z.number(),
-    player2Score: z.number(),
-    explanation: z.string().trim().min(1),
-  }),
   likelyTo: z.array(
     z.object({
       title: z.string(),
@@ -95,10 +87,6 @@ export interface CompatibilityAnalysisInput {
   scoring: {
     total: number;
     label: string;
-  };
-  predictions: {
-    player1Percent: number;
-    player2Percent: number;
   };
   likelyTo: CompatibilityReport["likelyTo"];
   achievements: CompatibilityReport["achievements"];
