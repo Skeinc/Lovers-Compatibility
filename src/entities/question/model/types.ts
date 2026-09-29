@@ -10,6 +10,8 @@ export type AnswerValue = string | string[];
 export interface QuestionOption {
   id: string;
   label: string;
+  selfLabel?: string;
+  otherLabel?: string;
   exclusive?: boolean;
 }
 

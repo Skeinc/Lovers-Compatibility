@@ -1,14 +1,4 @@
-import { useRef } from "react";
-import {
-  Bar,
-  BarChart,
-  Rectangle,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  type BarShapeProps,
-  type YAxisTickContentProps,
-} from "recharts";
+import { useRef, type ReactNode } from "react";
 
 import {
   evaluateCompatibility,
@@ -16,12 +6,12 @@ import {
   type Evaluation,
   type GuessMoment,
 } from "@/entities/compatibility";
-import { getQuestion } from "@/entities/question";
-import { buildDecade, buildMirror, buildValuesReading, buildXray } from "@/entities/report";
+import { buildAxes, buildDecade, buildMirror, buildMoneyReading, buildXray } from "@/entities/report";
 import { NewCoupleButton } from "@/features/reset-session";
 import { RetryButton } from "@/features/retry-analysis";
 import { ShareButton } from "@/features/share-result";
 import type { ComparisonView } from "@/entities/session";
+import { CoupleAxes } from "./couple-axes";
 
 const ROLE_GLOSS: Record<string, string> = {
   инициатор: "Чаще предлагает следующий шаг.",
@@ -38,8 +28,6 @@ function describeRole(role: string, notes: string[] | undefined, index: number):
 const ACCENT = "#d6b48a";
 const CREAM = "#f4efe8";
 const EVEN = "#7f97b0";
-const MUTED = "#a39b94";
-const DIM = "rgba(244, 239, 232, 0.35)";
 
 function inScenes(count: number): string {
   const mod10 = count % 10;
@@ -83,38 +71,35 @@ function MomentCard({ eyebrow, moment }: { eyebrow: string; moment: GuessMoment 
   );
 }
 
-function MoneyPair({
-  title,
-  leftName,
-  rightName,
-  left,
-  right,
-}: {
-  title: string;
-  leftName: string;
-  rightName: string;
-  left: string;
-  right: string;
-}) {
-  const same = left !== "" && left === right;
+function PersonCard({ name, value, color }: { name: string; value: string; color: string }) {
   return (
-    <article className="rounded-3xl border border-border bg-card p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <h3 className="text-lg leading-snug">{title}</h3>
-        {same ? <p className="shrink-0 text-sm text-accent">совпало</p> : null}
-      </div>
-      <div className="mt-4 flex flex-col gap-2">
-        {[
-          { name: leftName, value: left },
-          { name: rightName, value: right },
-        ].map((row) => (
-          <div key={row.name} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-            <p className="text-sm text-accent">{row.name}</p>
-            <p className="mt-1 text-lg leading-snug">{row.value || "—"}</p>
-          </div>
-        ))}
-      </div>
+    <div className="min-w-0 rounded-2xl border border-border bg-white/[0.03] p-4">
+      <p className="text-xs tracking-[0.14em] uppercase" style={{ color }}>
+        {name}
+      </p>
+      <p className="mt-2 font-serif text-2xl leading-snug">{value || "—"}</p>
+    </div>
+  );
+}
+
+function LinkNote({ eyebrow, text }: { eyebrow: string; text: string }) {
+  return (
+    <article className="rounded-3xl border border-accent/35 bg-[#1a1612] px-5 py-4">
+      <p className="text-xs tracking-[0.16em] text-accent uppercase">{eyebrow}</p>
+      <p className="mt-2 text-base leading-relaxed">{text}</p>
     </article>
+  );
+}
+
+function Chip({ children, tone = "muted" }: { children: ReactNode; tone?: "accent" | "muted" }) {
+  return (
+    <span
+      className={`rounded-full border px-3 py-1 text-sm ${
+        tone === "accent" ? "border-accent/40 bg-accent/15 text-accent" : "border-border bg-white/[0.03] text-muted"
+      }`}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -210,88 +195,6 @@ function DomainAxis({ domains }: { domains: { id: string; label: string; score: 
   );
 }
 
-function valueBarShape(sharedFill: string, soloFill: string) {
-  return function ValueBar(props: BarShapeProps) {
-    const shared = props.payload?.shared === true;
-    return (
-      <Rectangle
-        x={props.x}
-        y={props.y}
-        width={props.width}
-        height={props.height}
-        radius={6}
-        fill={shared ? sharedFill : soloFill}
-      />
-    );
-  };
-}
-
-const player1ValueBar = valueBarShape(ACCENT, "rgba(214, 180, 138, 0.4)");
-const player2ValueBar = valueBarShape(CREAM, DIM);
-
-function ValuesChart({ evaluation, player1, player2 }: { evaluation: Evaluation; player1: string; player2: string }) {
-  const options = getQuestion("future-values")?.options ?? [];
-  const data = options.map((option) => {
-    const left = evaluation.values.player1Ids.includes(option.id) ? 1 : 0;
-    const right = evaluation.values.player2Ids.includes(option.id) ? 1 : 0;
-    return { label: option.label, player1: left, player2: right, shared: left === 1 && right === 1 };
-  });
-  const sharedLabels = new Set(data.filter((row) => row.shared).map((row) => row.label));
-  return (
-    <div className="mt-2 h-[340px] w-full min-w-0">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 0, right: 8, left: 4, bottom: 0 }}
-          barGap={3}
-          barCategoryGap={14}
-        >
-          <XAxis type="number" domain={[0, 1]} hide />
-          <YAxis
-            type="category"
-            dataKey="label"
-            width={108}
-            axisLine={false}
-            tickLine={false}
-            tick={(props: YAxisTickContentProps) => {
-              const label = String(props.payload.value ?? "");
-              const shared = sharedLabels.has(label);
-              return (
-                <text
-                  x={Number(props.x)}
-                  y={Number(props.y)}
-                  dy={4}
-                  textAnchor="end"
-                  fill={shared ? CREAM : MUTED}
-                  fontSize={12}
-                  fontWeight={shared ? 600 : 400}
-                >
-                  {label}
-                </text>
-              );
-            }}
-          />
-          <Bar
-            dataKey="player1"
-            name={player1}
-            barSize={7}
-            shape={player1ValueBar}
-            background={{ fill: "rgba(214, 180, 138, 0.12)", radius: 6 }}
-          />
-          <Bar
-            dataKey="player2"
-            name={player2}
-            barSize={7}
-            shape={player2ValueBar}
-            background={{ fill: "rgba(244, 239, 232, 0.08)", radius: 6 }}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
 export function ResultsBoard({ view }: { view: ComparisonView }) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const report = view.report;
@@ -309,7 +212,7 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
   const mirror = report.mirror ?? buildMirror(evaluation, couple.player1.name, couple.player2.name);
   const settled = helm.scenes.filter((scene) => scene.outcome !== "split");
   const disputed = helm.scenes.filter((scene) => scene.outcome === "split");
-  const xray = report.xray ?? buildXray(evaluation, couple.player1.name, couple.player2.name);
+  const xray = report.xray ?? buildXray(evaluation);
   const axis = evaluation.domains.map((domain) => {
     const item = xray.find((entry) => entry.id === domain.id);
     return { id: domain.id, label: domain.label, score: item?.score ?? domain.score, reason: item?.reason };
@@ -323,6 +226,8 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
     roles.length > 1 ? [couple.player1.name, couple.player2.name] : [`${couple.player1.name} × ${couple.player2.name}`];
   const player1Dots = guessDots(couple.player1.name, reading);
   const player2Dots = guessDots(couple.player2.name, reading);
+  const moneyWatch = helm.scenes.find((scene) => scene.id === "watches-money");
+  const moneyInBoth = evaluation.values.player1Ids.includes("money") && evaluation.values.player2Ids.includes("money");
 
   return (
     <div className="results-rise flex min-w-0 flex-col gap-8 overflow-x-hidden py-6">
@@ -442,49 +347,87 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
 
         <section className="flex flex-col gap-3">
           <SectionTitle>Деньги</SectionTitle>
-          <MoneyPair
-            title="100 000 ₽"
-            leftName={couple.player1.name}
-            rightName={couple.player2.name}
-            left={evaluation.money.surprise.player1}
-            right={evaluation.money.surprise.player2}
-          />
-          <MoneyPair
-            title="Кто будет зарабатывать больше через 10 лет"
-            leftName={couple.player1.name}
-            rightName={couple.player2.name}
-            left={evaluation.money.earnings.player1}
-            right={evaluation.money.earnings.player2}
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <article className="rounded-3xl border border-border bg-card p-4">
+              <p className="text-xs tracking-[0.16em] text-muted uppercase">100 000 ₽</p>
+              <div className="mt-3 flex flex-col gap-2">
+                <PersonCard name={couple.player1.name} value={evaluation.money.surprise.player1} color={ACCENT} />
+                <PersonCard name={couple.player2.name} value={evaluation.money.surprise.player2} color={CREAM} />
+              </div>
+            </article>
+            <article className="rounded-3xl border border-border bg-card p-4">
+              <p className="text-xs tracking-[0.16em] text-muted uppercase">Через 10 лет</p>
+              {evaluation.money.earnings.same ? (
+                <div className="mt-3 rounded-2xl border border-accent/35 bg-accent/10 p-4">
+                  <p className="text-xs tracking-[0.14em] text-accent uppercase">оба видят</p>
+                  <p className="mt-2 font-serif text-2xl leading-snug">{evaluation.money.earnings.player1}</p>
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-col gap-2">
+                  <PersonCard name={couple.player1.name} value={evaluation.money.earnings.player1} color={ACCENT} />
+                  <PersonCard name={couple.player2.name} value={evaluation.money.earnings.player2} color={CREAM} />
+                </div>
+              )}
+            </article>
+          </div>
+          {moneyInBoth || moneyWatch ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              {moneyInBoth ? <Chip tone="accent">Деньги важны обоим</Chip> : null}
+              {moneyWatch && moneyWatch.outcome !== "split" ? (
+                <Chip>Следит за деньгами: {moneyWatch.label}</Chip>
+              ) : null}
+            </div>
+          ) : null}
+          <LinkNote eyebrow="Что интересно" text={report.moneyReading ?? buildMoneyReading(evaluation)} />
         </section>
 
         <section className="flex flex-col gap-3">
           <SectionTitle>Через 10 лет</SectionTitle>
-          <article className="rounded-3xl border border-border bg-card p-5">
-            <p className="text-base leading-relaxed">
-              {report.decade ?? buildDecade(evaluation, couple.player1.name, couple.player2.name)}
-            </p>
-          </article>
-          <article className="rounded-3xl border border-border bg-card p-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-lg">Три ценности</h3>
-              <p className="text-sm text-accent">общие {evaluation.values.overlap} / 3</p>
+          <div className="grid grid-cols-2 gap-3">
+            <PersonCard name={couple.player1.name} value={evaluation.futureFamily.player1} color={ACCENT} />
+            <PersonCard name={couple.player2.name} value={evaluation.futureFamily.player2} color={CREAM} />
+          </div>
+          {evaluation.values.shared.length > 0 ? (
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs tracking-[0.16em] text-muted uppercase">Общие ценности</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {evaluation.values.shared.map((value) => (
+                  <Chip key={value} tone="accent">
+                    {value}
+                  </Chip>
+                ))}
+              </div>
             </div>
-            <div className="mt-3 flex gap-4 text-sm text-muted">
-              <p>
-                <span className="mr-2 inline-block h-2 w-2 rounded-full bg-accent" />
-                {couple.player1.name}
-              </p>
-              <p>
-                <span className="mr-2 inline-block h-2 w-2 rounded-full bg-foreground" />
-                {couple.player2.name}
-              </p>
+          ) : null}
+          <article className="rounded-3xl border border-border bg-card p-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs tracking-[0.14em] uppercase" style={{ color: ACCENT }}>
+                  {couple.player1.name}
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  {evaluation.values.player1.map((value) => (
+                    <Chip key={`p1-${value}`} tone={evaluation.values.shared.includes(value) ? "accent" : "muted"}>
+                      {value}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs tracking-[0.14em] uppercase" style={{ color: CREAM }}>
+                  {couple.player2.name}
+                </p>
+                <div className="mt-3 flex flex-col gap-2">
+                  {evaluation.values.player2.map((value) => (
+                    <Chip key={`p2-${value}`} tone={evaluation.values.shared.includes(value) ? "accent" : "muted"}>
+                      {value}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
             </div>
-            <ValuesChart evaluation={evaluation} player1={couple.player1.name} player2={couple.player2.name} />
-            <p className="mt-4 text-sm leading-relaxed text-muted">
-              {report.valuesReading ?? buildValuesReading(evaluation, couple.player1.name, couple.player2.name)}
-            </p>
           </article>
+          <LinkNote eyebrow="Неожиданная комбинация" text={report.decade ?? buildDecade(evaluation)} />
         </section>
 
         <section className="flex flex-col gap-3">
@@ -494,6 +437,12 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
             <DomainAxis domains={axis} />
           </article>
         </section>
+
+        <CoupleAxes
+          axes={report.axes ?? buildAxes(evaluation, couple.player1.name, couple.player2.name)}
+          player1={couple.player1.name}
+          player2={couple.player2.name}
+        />
 
         <section className="rounded-[28px] border border-border bg-card px-6 py-8 text-center">
           <p className="text-xs tracking-[0.18em] text-accent uppercase">Главный парадокс</p>

@@ -1,9 +1,10 @@
 export { buildAnalysisInput } from "./model/context";
 export {
+  buildAxes,
   buildDecade,
   buildFallbackReport,
   buildMirror,
-  buildValuesReading,
+  buildMoneyReading,
   buildXray,
   friendlyVerdicts,
 } from "./model/fallback-report";

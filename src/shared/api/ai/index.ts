@@ -1,7 +1,14 @@
 export type { AIProvider } from "./ai-provider";
 export { createOpenAiCompatibleProvider } from "./openai-compatible-provider";
-export { aiNarrativeSchema, compatibilityReportSchema } from "./schemas";
-export type { AiNarrative, CompatibilityAnalysisInput, CompatibilityReport } from "./schemas";
+export { AXIS_IDS, AXIS_POSITIONS, aiNarrativeSchema, compatibilityReportSchema } from "./schemas";
+export type {
+  AiNarrative,
+  AxisId,
+  AxisPosition,
+  CompatibilityAnalysisInput,
+  CompatibilityReport,
+  CoupleAxis,
+} from "./schemas";
 
 import { createOpenAiCompatibleProvider } from "./openai-compatible-provider";
 

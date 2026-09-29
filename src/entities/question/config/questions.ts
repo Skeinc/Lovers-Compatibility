@@ -6,7 +6,8 @@ export const QUESTIONS: readonly Question[] = [
     kind: "choice-predict",
     category: "preferences",
     title: "Как выглядит идеальный совместный выходной?",
-    description: "Не тот, который «надо бы», а тот, после которого не хочется понедельника.",
+    description:
+      "Внимание: сначала угадай ответ партнёра, потом ответь за себя. Не тот выходной, который «надо бы», а тот, после которого не хочется понедельника.",
     options: [
       { id: "home", label: "Лежать дома и ничего не делать" },
       { id: "city", label: "Ресторан, бар, город" },
@@ -38,12 +39,12 @@ export const QUESTIONS: readonly Question[] = [
     title: "После небольшой ссоры ты скорее...",
     description: "Не драма на три дня. Обычная искра.",
     options: [
-      { id: "first", label: "Первым пойду мириться" },
-      { id: "pause", label: "Возьму паузу" },
-      { id: "talk", label: "Попробую обсудить" },
-      { id: "ignore", label: "Сделаю вид, что ничего не было" },
-      { id: "joke", label: "Начну шутить" },
-      { id: "wait", label: "Буду ждать первого шага" },
+      { id: "first", label: "Первым пойду мириться", otherLabel: "Первым пойдёт мириться" },
+      { id: "pause", label: "Возьму паузу", otherLabel: "Возьмёт паузу" },
+      { id: "talk", label: "Попробую обсудить", otherLabel: "Попробует обсудить" },
+      { id: "ignore", label: "Сделаю вид, что ничего не было", otherLabel: "Сделает вид, что ничего не было" },
+      { id: "joke", label: "Начну шутить", otherLabel: "Начнёт шутить" },
+      { id: "wait", label: "Буду ждать первого шага", otherLabel: "Будет ждать первого шага" },
     ],
   },
   {
@@ -77,12 +78,12 @@ export const QUESTIONS: readonly Question[] = [
     options: [
       { id: "stubborn", label: "Упрямство" },
       { id: "always-right", label: "«Я всегда прав»" },
-      { id: "grudge", label: "Слишком долго обижаюсь" },
+      { id: "grudge", label: "Слишком долго обижаюсь", otherLabel: "Слишком долго обижается" },
       { id: "lazy", label: "Лень" },
       { id: "impulse", label: "Импульсивность" },
       { id: "forgetful", label: "Забывчивость" },
       { id: "phone", label: "Слишком много телефона" },
-      { id: "work", label: "Слишком много работаю" },
+      { id: "work", label: "Слишком много работаю", otherLabel: "Слишком много работает" },
     ],
   },
   {
@@ -108,7 +109,7 @@ export const QUESTIONS: readonly Question[] = [
     kind: "who-likely",
     category: "dynamics",
     title: "Кто скорее?",
-    description: "Восемь коротких сцен. Я, партнёр или поровну.",
+    description: "Восемь коротких сцен. На каждой отметь, кто это скорее.",
     scenarios: [
       { id: "writes-first", prompt: "Первый напишет после ссоры" },
       { id: "order-food", prompt: "Предложит заказать еду" },
@@ -129,11 +130,11 @@ export const QUESTIONS: readonly Question[] = [
     predictPrompt: "Что сделает {partner}?",
     actualPrompt: "А что сделаешь ты?",
     options: [
-      { id: "yes", label: "Согласится сразу" },
-      { id: "rather-yes", label: "Скорее согласится" },
-      { id: "no", label: "Откажется" },
-      { id: "think", label: "Будет долго думать" },
-      { id: "together", label: "Согласится только вместе" },
+      { id: "yes", label: "Согласится сразу", selfLabel: "Соглашусь сразу" },
+      { id: "rather-yes", label: "Скорее согласится", selfLabel: "Скорее соглашусь" },
+      { id: "no", label: "Откажется", selfLabel: "Откажусь" },
+      { id: "think", label: "Будет долго думать", selfLabel: "Буду долго думать" },
+      { id: "together", label: "Согласится только вместе", selfLabel: "Соглашусь только вместе" },
       { id: "depends", label: "Зависит от города и условий" },
     ],
   },
@@ -215,9 +216,9 @@ export const QUESTIONS: readonly Question[] = [
     options: [
       { id: "argue-food", label: "Спорим, куда пойти, и заказываем еду" },
       { id: "stay-home", label: "Собираемся выйти и остаёмся дома" },
-      { id: "where", label: "Один предлагает сорваться, второй спрашивает «куда?»" },
-      { id: "both-first", label: "Миримся так быстро, что оба считаем себя первыми" },
-      { id: "trip-delivery", label: "Обсуждаем отпуск, пока кто-то открывает доставку" },
+      { id: "where", label: "Один зовёт куда-нибудь, другой спрашивает куда" },
+      { id: "both-first", label: "Быстро миримся и спорим, кто написал первый" },
+      { id: "trip-delivery", label: "Заказываем еду и говорим про отпуск" },
     ],
   },
   {

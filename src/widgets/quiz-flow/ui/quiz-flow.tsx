@@ -39,6 +39,8 @@ export function QuizFlow() {
   const filled = isValueFilled(question, draft);
   const progress = ((quiz.questionIndex + (stepIndex + 1) / steps.length) / QUESTIONS.length) * 100;
   const predicting = quiz.substep === "predict";
+  const aboutPartner = question.id === "green-flag" || question.id === "red-flag" ? !predicting : predicting;
+  const voice = aboutPartner ? "other" : "self";
   const title = predicting
     ? promptLine(question.predictPrompt, `Как думаешь, что ответит {partner}?`, quiz.partnerName)
     : question.kind === "choice-predict" || question.kind === "multi-predict"
@@ -81,8 +83,8 @@ export function QuizFlow() {
           <QuestionView
             question={question}
             value={draft}
-            selfName={quiz.selfName}
             partnerName={quiz.partnerName}
+            voice={voice}
             onChange={persist}
           />
         </div>

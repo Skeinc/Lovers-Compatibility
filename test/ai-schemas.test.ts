@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { evaluateCompatibility } from "@/entities/compatibility";
 import { buildAnalysisInput, buildFallbackReport, friendlyVerdicts } from "@/entities/report";
 import type { PlayerAnswer } from "@/entities/question";
-import { aiNarrativeSchema, compatibilityReportSchema } from "@/shared/api";
+import { AXIS_IDS, AXIS_POSITIONS, aiNarrativeSchema, compatibilityReportSchema } from "@/shared/api";
 
 const WHO = [
   "writes-first",
@@ -44,6 +44,52 @@ function aligned(player: 1 | 2): PlayerAnswer[] {
   ];
 }
 
+function sampleAxes() {
+  return AXIS_IDS.map((id, index) => ({
+    id,
+    position: AXIS_POSITIONS[index % AXIS_POSITIONS.length],
+    label: index % 2 === 0 ? "Поровну" : "Чуть ближе к Диме",
+    explanation: "Связь нескольких фактов, без числа.",
+  }));
+}
+
+function validNarrative() {
+  return {
+    verdict: "Сговорились заранее",
+    roleName: "Инициатор + Стабилизатор",
+    insight: "Угадывание и штурвал смотрят в одну сторону, а переезд стоит отдельно.",
+    paradox: {
+      title: "Неожиданная комбинация",
+      description: "Выходной про дом стоит рядом с тем, как разошлись внезапные деньги.",
+    },
+    discussQuestion: "Работа мечты в другом городе: вы едете вместе или каждый решает сам?",
+    finalScene: "Обычный вечер.\nОдин уже смотрит в карту.\nРазговор уходит к деньгам.\nИдея отпуска возникает сама.",
+    xray: [
+      { id: "relationships" as const, score: 0.62, reason: "Мириться они готовы по-разному, но инициативу делят." },
+      {
+        id: "money" as const,
+        score: 0.48,
+        reason: "Трата и заработок смотрят в разные стороны, ценность денег при этом общая.",
+      },
+      { id: "household" as const, score: 0.4, reason: "Бытовая ссора у каждого своя, это не весь быт." },
+      { id: "spontaneity" as const, score: 0.55, reason: "Выходной дома стоит рядом с тем, кто предлагает сорваться." },
+      { id: "career" as const, score: 0.44, reason: "Переезд — одна сцена решения, не вся карьера." },
+      {
+        id: "future" as const,
+        score: 0.58,
+        reason: "Семья и путешествие — две картинки срока, не противоположные жизни.",
+      },
+    ],
+    decade: "Карьера и дом — две картинки одного срока, не противоположные жизни.",
+    moneyReading: "Один копит куш, второй делит его. Заработок при этом смотрит на одного человека.",
+    mirror: {
+      green: "Доброту замечают оба, и она стыкуется с тем, как они держат темп.",
+      red: "Забывчивость уже слышна в паре, это не приговор характеру.",
+    },
+    axes: sampleAxes(),
+  };
+}
+
 const couple = {
   player1: { name: "Дима", age: 28 },
   player2: { name: "Настя", age: 27 },
@@ -74,40 +120,29 @@ describe("aiNarrativeSchema", () => {
     const parsed = aiNarrativeSchema.safeParse({
       agreementPercent: 99,
       score: 79,
-      verdict: "Сговорились заранее",
-      roleName: "Инициатор + Стабилизатор",
-      insight: "Угадывание и штурвал смотрят в одну сторону, а переезд стоит отдельно.",
-      paradox: {
-        title: "Неожиданная комбинация",
-        description: "Выходной про дом стоит рядом с тем, как разошлись внезапные деньги.",
-      },
-      discussQuestion: "Работа мечты в другом городе: вы едете вместе или каждый решает сам?",
-      finalScene: "Обычный вечер.\nОдин уже смотрит в карту.\nРазговор уходит к деньгам.\nИдея отпуска возникает сама.",
-      xray: [
-        { id: "relationships", score: 0.62, reason: "Мириться они готовы по-разному, но инициативу делят." },
-        {
-          id: "money",
-          score: 0.48,
-          reason: "Трата и заработок смотрят в разные стороны, ценность денег при этом общая.",
-        },
-        { id: "household", score: 0.4, reason: "Бытовая ссора у каждого своя, это не весь быт." },
-        { id: "spontaneity", score: 0.55, reason: "Выходной дома стоит рядом с тем, кто предлагает сорваться." },
-        { id: "career", score: 0.44, reason: "Переезд — одна сцена решения, не вся карьера." },
-        { id: "future", score: 0.58, reason: "Семья и путешествие — две картинки срока, не противоположные жизни." },
-      ],
-      valuesReading: "Общая семья держит пару, а проект и спокойствие каждый берёт сам.",
-      decade: "Карьера и дом — две картинки одного срока, не противоположные жизни.",
-      mirror: {
-        green: "Доброту замечают оба, и она стыкуется с тем, как они держат темп.",
-        red: "Забывчивость уже слышна в паре, это не приговор характеру.",
-      },
+      ...validNarrative(),
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect("agreementPercent" in parsed.data).toBe(false);
       expect("score" in parsed.data).toBe(false);
       expect(parsed.data.verdict).toBe("Сговорились заранее");
+      expect(parsed.data.axes).toHaveLength(8);
+      expect(new Set(parsed.data.axes.map((axis) => axis.id)).size).toBe(8);
     }
+  });
+
+  it("rejects axes with a duplicate id or a numeric position", () => {
+    const axes = sampleAxes();
+    axes[1] = { ...axes[1], id: "green-flag" };
+    expect(aiNarrativeSchema.safeParse({ ...validNarrative(), axes }).success).toBe(false);
+    axes[1] = sampleAxes()[1];
+    expect(
+      aiNarrativeSchema.safeParse({
+        ...validNarrative(),
+        axes: sampleAxes().map((axis, index) => (index === 0 ? { ...axis, position: "0.73" } : axis)),
+      }).success,
+    ).toBe(false);
   });
 });
 
@@ -150,9 +185,29 @@ describe("analysis context and fallback", () => {
     expect(matched.finalScene.split("\n").length).toBeGreaterThanOrEqual(5);
     expect(compatibilityReportSchema.safeParse(matched).success).toBe(true);
     expect(matched.xray.find((item) => item.id === "future")?.score).toBeGreaterThan(0);
-    expect(matched.xray.find((item) => item.id === "future")?.reason).toContain("ценности");
+    expect(matched.xray.find((item) => item.id === "future")?.reason).toContain("картинки");
     expect(matched.decade.toLowerCase()).not.toContain("вы оба выбрали");
-    expect(matched.valuesReading.length).toBeGreaterThan(20);
+    expect(matched.moneyReading.toLowerCase()).not.toContain("вы оба выбрали");
+    expect(matched.axes).toHaveLength(8);
+    expect(matched.axes.map((axis) => axis.id).sort()).toEqual([...AXIS_IDS].sort());
+    expect(matched.axes.every((axis) => AXIS_POSITIONS.includes(axis.position))).toBe(true);
+    expect(matched.axes.find((axis) => axis.id === "leader")?.position).toBe("player1");
+    expect(matched.axes.find((axis) => axis.id === "mind-reader")?.position).toBe("even");
+    expect(matched.axes.some((axis) => axis.explanation.toLowerCase().match(/токсич|нарцисс|нездоров/))).toBe(false);
+
+    const evenHelm = evaluateCompatibility({
+      player1Name: "Дима",
+      player2Name: "Настя",
+      player1: aligned(1).map((item) => (item.questionId === "who-leads" ? whoLeads("even") : item)),
+      player2: aligned(2).map((item) => (item.questionId === "who-leads" ? whoLeads("even") : item)),
+    });
+    const evenReport = buildFallbackReport({
+      couple,
+      player1: aligned(1),
+      player2: aligned(2),
+      evaluation: evenHelm,
+    });
+    expect(evenReport.axes.find((axis) => axis.id === "leader")?.position).toBe("even");
 
     const apart = evaluateCompatibility({
       player1Name: "Дима",

@@ -2,17 +2,27 @@ import { decodeWho, encodeWho, toggleMulti, type AnswerValue, type Question } fr
 import { ChoiceButton } from "@/shared/ui/choice-button";
 import { TextArea } from "@/shared/ui/field";
 
+function optionText(
+  label: string,
+  selfLabel: string | undefined,
+  otherLabel: string | undefined,
+  voice: "self" | "other",
+) {
+  if (voice === "self") return selfLabel ?? label;
+  return otherLabel ?? label;
+}
+
 export function QuestionView({
   question,
   value,
-  selfName,
   partnerName,
+  voice = "self",
   onChange,
 }: {
   question: Question;
   value: AnswerValue | undefined;
-  selfName: string;
   partnerName: string;
+  voice?: "self" | "other";
   onChange: (value: AnswerValue) => void;
 }) {
   if (question.kind === "text" || question.kind === "text-predict") {
@@ -31,9 +41,7 @@ export function QuestionView({
     const selected = decodeWho(value);
     return (
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-muted">
-          {selfName} отмечает себя, {partnerName} или что это поровну.
-        </p>
+        <p className="text-sm text-muted">На каждой сцене отметь, кто это скорее: ты, {partnerName} или поровну.</p>
         {(question.scenarios ?? []).map((scenario) => {
           const choice = selected.get(scenario.id);
           return (
@@ -99,7 +107,7 @@ export function QuestionView({
             onChange(option.id);
           }}
         >
-          {option.label}
+          {optionText(option.label, option.selfLabel, option.otherLabel, voice)}
         </ChoiceButton>
       ))}
     </div>
