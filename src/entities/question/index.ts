@@ -9,5 +9,6 @@ export type {
   QuestionKind,
   QuestionOption,
   Substep,
+  WhoChoice,
   WhoScenario,
 } from "./model/types";

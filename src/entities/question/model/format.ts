@@ -11,7 +11,14 @@ export function formatAnswer(question: Question, value: AnswerValue, selfName: s
     return (question.scenarios ?? [])
       .map((scenario) => {
         const choice = decoded.get(scenario.id);
-        const person = choice === "self" ? selfName : choice === "partner" ? partnerName : "не выбрано";
+        const person =
+          choice === "self"
+            ? selfName
+            : choice === "partner"
+              ? partnerName
+              : choice === "even"
+                ? "поровну"
+                : "не выбрано";
         return `${scenario.prompt} ${person}`;
       })
       .join("; ");

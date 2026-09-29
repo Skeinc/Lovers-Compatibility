@@ -1,92 +1,165 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluateCompatibility } from "@/entities/compatibility";
+import { evaluateCompatibility, PREDICTION_QUESTION_IDS } from "@/entities/compatibility";
 import type { PlayerAnswer } from "@/entities/question";
+
+const WHO = [
+  "writes-first",
+  "order-food",
+  "suggest-trip",
+  "decides",
+  "changes-mind",
+  "watches-money",
+  "forgets-date",
+  "needs-talk",
+];
 
 function choice(id: string, value: string, prediction = value): PlayerAnswer {
   return { questionId: id, answer: value, prediction };
 }
 
-function agree(player: 1 | 2): string[] {
-  return ["delivery", "impulse", "trip", "lost", "makeup", "room"].map((id) =>
-    player === 1 ? `${id}:self` : `${id}:partner`,
-  );
+function whoLeads(mark: "self" | "partner" | "even"): PlayerAnswer {
+  return { questionId: "who-leads", answer: WHO.map((id) => `${id}:${mark}`) };
 }
 
 function aligned(player: 1 | 2): PlayerAnswer[] {
+  const lead = player === 1 ? "self" : "partner";
   return [
     choice("perfect-weekend", "home"),
     choice("surprise-money", "save"),
     choice("after-conflict", "joke"),
-    choice("ideal-date", "dinner"),
-    { questionId: "future-irritation", answer: ["mess", "phone"], prediction: ["phone", "mess"] },
-    choice("extra-hours", "rather-no"),
-    choice("lost-in-city", "cafe"),
-    { questionId: "free-year", answer: "год у моря без планов" },
-    { questionId: "favorite-trait", answer: "смеётся первым" },
-    { questionId: "annoying-habit", answer: "напевает в ванной" },
-    { questionId: "who-is-more-likely", answer: agree(player) },
-    { questionId: "three-words", answer: "тепло смех дом", prediction: "тепло смех дом" },
+    choice("green-flag", "kindness"),
+    choice("red-flag", "work"),
+    choice("household-fight", "money"),
+    whoLeads(lead),
+    choice("relocation", "together"),
+    choice("earnings-future", "equal"),
+    choice("family-future", "home"),
+    { questionId: "future-values", answer: ["family", "freedom", "calm"] },
+    choice("never-forgive", "lie"),
+    { questionId: "typical-scene", answer: "stay-home" },
+    { questionId: "couple-sentence", answer: "Спорим полчаса и заказываем еду" },
   ];
 }
 
 describe("evaluateCompatibility", () => {
   const names = { player1Name: "Дима", player2Name: "Настя" };
 
-  it("is deterministic and reaches 100 when the answers match", () => {
-    const input = { ...names, player1: aligned(1), player2: aligned(2) };
-    const first = evaluateCompatibility(input);
-    const second = evaluateCompatibility(input);
-    expect(first.scoring).toEqual(second.scoring);
-    expect(first.scoring.total).toBe(100);
-    expect(first.scoring.label).toBe("Почти один ритм");
-    expect(first.likelyTo).toHaveLength(6);
-    expect(first.likelyTo.every((item) => item.person === "Дима")).toBe(true);
+  it("locks prediction questions to the ten ids", () => {
+    expect([...PREDICTION_QUESTION_IDS]).toEqual([
+      "perfect-weekend",
+      "surprise-money",
+      "after-conflict",
+      "green-flag",
+      "red-flag",
+      "household-fight",
+      "relocation",
+      "earnings-future",
+      "family-future",
+      "never-forgive",
+    ]);
   });
 
-  it("does not assign a person when players point at different people", () => {
-    const player1 = aligned(1).map((item) =>
-      item.questionId === "who-is-more-likely" ? { ...item, answer: ["delivery:self"] } : item,
-    );
-    const player2 = aligned(2).map((item) =>
-      item.questionId === "who-is-more-likely" ? { ...item, answer: ["delivery:self"] } : item,
-    );
-    const result = evaluateCompatibility({ ...names, player1, player2 });
-    expect(result.likelyTo.find((item) => item.title.includes("доставку"))).toBeUndefined();
+  it("separates a full answer match from prediction hits", () => {
+    const matched = evaluateCompatibility({ ...names, player1: aligned(1), player2: aligned(2) });
+    expect(matched.scoring.total).toBe(100);
+    expect(matched.reading.player1.hits).toBe(10);
+    expect(matched.reading.player2.hits).toBe(10);
+    expect(matched.reading.player1.total).toBe(10);
+    expect(matched.helm.player1).toBe(8);
+    expect(matched.helm.player2).toBe(0);
+    expect(matched.values.overlap).toBe(3);
+    expect(matched.helm.line).toContain("Дима");
+
+    const missed = aligned(1).map((item) => (item.prediction !== undefined ? { ...item, prediction: "nope" } : item));
+    const blind = evaluateCompatibility({ ...names, player1: missed, player2: aligned(2) });
+    expect(blind.scoring.total).toBe(100);
+    expect(blind.reading.player1.hits).toBe(0);
+    expect(blind.reading.player2.hits).toBe(10);
   });
 
-  it("scores a full mismatch below a full match", () => {
-    const sheet = (side: "left" | "right"): PlayerAnswer[] => [
-      choice("perfect-weekend", side === "left" ? "home" : "trip", "city"),
-      choice("surprise-money", side === "left" ? "save" : "spent", "travel"),
-      choice("after-conflict", side === "left" ? "joke" : "space", "talk"),
-      choice("ideal-date", side === "left" ? "dinner" : "active", "walk"),
-      {
-        questionId: "future-irritation",
-        answer: side === "left" ? ["mess"] : ["music"],
-        prediction: ["late"],
-      },
-      choice("extra-hours", side === "left" ? "rather-no" : "definitely-yes", "depends"),
-      choice("lost-in-city", side === "left" ? "cafe" : "blame", "argue"),
-      { questionId: "free-year", answer: side === "left" ? "год у моря" : "ремонт кухни отчёты" },
-      { questionId: "favorite-trait", answer: "смех" },
-      { questionId: "annoying-habit", answer: "носок на люстре" },
-      {
-        questionId: "who-is-more-likely",
-        answer: side === "left" ? ["delivery:self"] : ["delivery:self"],
-      },
-      {
-        questionId: "three-words",
-        answer: side === "left" ? "тепло смех дом" : "хаос споры бег",
-        prediction: "совсем другие слова",
-      },
-    ];
-    const low = evaluateCompatibility({
+  it("gives a helm point only when both people point at the same person", () => {
+    const player1 = aligned(1).map((item) => (item.questionId === "who-leads" ? whoLeads("self") : item));
+    const split = evaluateCompatibility({
       ...names,
-      player1: sheet("left"),
-      player2: sheet("right"),
+      player1,
+      player2: aligned(2).map((item) => (item.questionId === "who-leads" ? whoLeads("self") : item)),
     });
-    expect(low.scoring.total).toBeLessThan(40);
-    expect(low.scoring.total).toBeGreaterThanOrEqual(0);
+    expect(split.helm.player1).toBe(0);
+    expect(split.helm.player2).toBe(0);
+    expect(split.helm.scenes.every((scene) => scene.outcome === "split")).toBe(true);
+
+    const even = evaluateCompatibility({
+      ...names,
+      player1: aligned(1).map((item) => (item.questionId === "who-leads" ? whoLeads("even") : item)),
+      player2: aligned(2),
+    });
+    expect(even.helm.player1).toBe(0);
+    expect(even.helm.scenes.every((scene) => scene.outcome === "even")).toBe(true);
+  });
+
+  it("treats earnings as the same picture only when both point at one person", () => {
+    const base1 = aligned(1).map((item) =>
+      item.questionId === "earnings-future" ? choice("earnings-future", "partner", "self") : item,
+    );
+    const base2 = aligned(2).map((item) =>
+      item.questionId === "earnings-future" ? choice("earnings-future", "self", "partner") : item,
+    );
+    const agreed = evaluateCompatibility({ ...names, player1: base1, player2: base2 });
+    expect(agreed.money.earnings.same).toBe(true);
+    expect(agreed.money.earnings.player1).toBe("Настя");
+    expect(agreed.money.earnings.player2).toBe("Настя");
+
+    const clash = evaluateCompatibility({
+      ...names,
+      player1: aligned(1).map((item) =>
+        item.questionId === "earnings-future" ? choice("earnings-future", "self") : item,
+      ),
+      player2: aligned(2).map((item) =>
+        item.questionId === "earnings-future" ? choice("earnings-future", "self") : item,
+      ),
+    });
+    expect(clash.money.earnings.same).toBe(false);
+  });
+
+  it("picks the discussion topic by the first real divergence", () => {
+    const familyClash = evaluateCompatibility({
+      ...names,
+      player1: aligned(1),
+      player2: aligned(2).map((item) =>
+        item.questionId === "family-future" ? choice("family-future", "travel", "home") : item,
+      ),
+    });
+    expect(familyClash.discussionTopic).toBe("family");
+
+    const valuesClash = evaluateCompatibility({
+      ...names,
+      player1: aligned(1),
+      player2: aligned(2).map((item) =>
+        item.questionId === "future-values" ? { ...item, answer: ["money", "career", "travel"] } : item,
+      ),
+    });
+    expect(valuesClash.values.overlap).toBe(0);
+    expect(valuesClash.discussionTopic).toBe("values");
+
+    const oneShared = evaluateCompatibility({
+      ...names,
+      player1: aligned(1),
+      player2: aligned(2).map((item) =>
+        item.questionId === "future-values" ? { ...item, answer: ["family", "career", "travel"] } : item,
+      ),
+    });
+    expect(oneShared.values.overlap).toBe(1);
+    expect(oneShared.discussionTopic).toBe("values");
+
+    const twoShared = evaluateCompatibility({
+      ...names,
+      player1: aligned(1),
+      player2: aligned(2).map((item) =>
+        item.questionId === "future-values" ? { ...item, answer: ["family", "freedom", "travel"] } : item,
+      ),
+    });
+    expect(twoShared.values.overlap).toBe(2);
+    expect(twoShared.discussionTopic).toBe("household-fight");
   });
 });

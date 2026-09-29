@@ -9,9 +9,8 @@ export function ShareButton(input: {
   player1: string;
   player2: string;
   total: number;
-  label: string;
-  archetype: string;
-  verdict: string;
+  roleName: string;
+  insight: string;
 }) {
   const [pending, setPending] = useState(false);
 

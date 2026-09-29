@@ -18,6 +18,8 @@ export interface WhoScenario {
   prompt: string;
 }
 
+export type WhoChoice = "self" | "partner" | "even";
+
 export interface Question {
   id: string;
   kind: QuestionKind;
@@ -25,6 +27,9 @@ export interface Question {
   title: string;
   description?: string;
   placeholder?: string;
+  predictPrompt?: string;
+  actualPrompt?: string;
+  maxSelections?: number;
   options?: QuestionOption[];
   scenarios?: WhoScenario[];
 }

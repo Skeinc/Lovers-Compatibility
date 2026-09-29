@@ -34,10 +34,10 @@ export function LandingPage() {
       <p className="mt-6 text-sm tracking-[0.22em] text-accent uppercase">Для двоих, один телефон</p>
       <h1 className="mt-4 max-w-[16ch] font-serif text-5xl leading-[1.05] tracking-tight">LOVERS COMPATIBILITY</h1>
       <p className="mt-5 max-w-sm text-xl leading-snug text-foreground">
-        Насколько хорошо вы действительно знаете друг друга?
+        Насколько хорошо вы угадываете ответы друг друга?
       </p>
       <p className="mt-4 max-w-sm text-base leading-relaxed text-muted">
-        10–15 минут, один телефон и несколько неудобно точных вопросов.
+        Четырнадцать вопросов на одном телефоне. Второй не видит ответы, пока не дойдёт очередь.
       </p>
       <div className="mt-10 w-full">
         <Button

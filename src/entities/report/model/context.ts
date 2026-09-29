@@ -1,7 +1,9 @@
-import { durationLabel, goalLabels, howMetLabel, type CoupleProfile } from "@/entities/couple/@x/report";
 import type { Evaluation } from "@/entities/compatibility/@x/report";
-import { formatAnswer, QUESTIONS, type PlayerAnswer } from "@/entities/question/@x/report";
-import type { CompatibilityAnalysisInput, CompatibilityReport } from "@/shared/api";
+import type { CoupleProfile } from "@/entities/couple/@x/report";
+import type { PlayerAnswer } from "@/entities/question/@x/report";
+import type { CompatibilityAnalysisInput } from "@/shared/api";
+
+import { DISCUSSION_TOPIC_LABEL } from "./topics";
 
 export interface ReportContext {
   couple: CoupleProfile;
@@ -10,50 +12,44 @@ export interface ReportContext {
   evaluation: Evaluation;
 }
 
-function answerLine(
-  answers: PlayerAnswer[],
-  selfName: string,
-  partnerName: string,
-): CompatibilityAnalysisInput["player1"] {
-  return QUESTIONS.map((question) => {
-    const saved = answers.find((item) => item.questionId === question.id);
-    const answer = saved ? formatAnswer(question, saved.answer, selfName, partnerName) : "";
-    const prediction =
-      saved?.prediction !== undefined ? formatAnswer(question, saved.prediction, selfName, partnerName) : undefined;
-    return {
-      question: question.title,
-      answer,
-      ...(prediction !== undefined && prediction !== "" ? { prediction } : {}),
-    };
-  });
+function momentText(moment: Evaluation["reading"]["bestHit"]): string | null {
+  if (!moment) return null;
+  return `${moment.guesser} ожидал «${moment.expected}», ${moment.chooser} выбрал «${moment.chosen}» (${moment.title})`;
 }
 
 export function buildAnalysisInput(context: ReportContext): CompatibilityAnalysisInput {
   const { couple, evaluation } = context;
+  const { reading, helm, values, money } = evaluation;
   return {
-    couple: {
-      player1: couple.player1,
-      player2: couple.player2,
-      relationshipDuration: durationLabel(couple),
-      howMet: howMetLabel(couple),
-      ...(couple.howMetDetails ? { howMetDetails: couple.howMetDetails } : {}),
-      goals: goalLabels(couple),
+    players: { player1: couple.player1.name, player2: couple.player2.name },
+    agreementPercent: evaluation.scoring.total,
+    reading: {
+      player1to2: `${reading.player1.guesser} → ${reading.player1.target}: ${reading.player1.hits}/${reading.player1.total}`,
+      player2to1: `${reading.player2.guesser} → ${reading.player2.target}: ${reading.player2.hits}/${reading.player2.total}`,
     },
-    player1: answerLine(context.player1, couple.player1.name, couple.player2.name),
-    player2: answerLine(context.player2, couple.player2.name, couple.player1.name),
-    scoring: {
-      total: evaluation.scoring.total,
-      label: evaluation.scoring.label,
+    bestHit: momentText(reading.bestHit),
+    worstMiss: momentText(reading.worstMiss),
+    green: evaluation.traffic.green,
+    interesting: evaluation.traffic.interesting,
+    spicy: momentText(evaluation.traffic.spicy),
+    choices: evaluation.choices.map((choice) => ({
+      topic: choice.title,
+      player1: choice.player1,
+      player2: choice.player2,
+      same: choice.same,
+    })),
+    valuesOverlap: values.overlap,
+    sharedValues: values.shared,
+    valuesByPlayer: { player1: values.player1, player2: values.player2 },
+    earnings: {
+      topic: money.earnings.title,
+      player1: money.earnings.player1,
+      player2: money.earnings.player2,
+      same: money.earnings.same,
     },
-    likelyTo: evaluation.likelyTo,
-    achievements: evaluation.achievements,
-  };
-}
-
-export function attachLocalFacts(report: CompatibilityReport, context: ReportContext): CompatibilityReport {
-  return {
-    ...report,
-    likelyTo: context.evaluation.likelyTo,
-    achievements: context.evaluation.achievements,
+    helm: { player1Points: helm.player1, player2Points: helm.player2, line: helm.line },
+    discussionTopic: evaluation.discussionTopic,
+    discussionTopicLabel: DISCUSSION_TOPIC_LABEL[evaluation.discussionTopic],
+    sentences: evaluation.sentences,
   };
 }

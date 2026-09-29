@@ -10,6 +10,10 @@ import { Button } from "@/shared/ui/button";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 import { StickyBar } from "@/shared/ui/sticky-bar";
 
+function promptLine(template: string | undefined, fallback: string, partnerName: string): string {
+  return (template ?? fallback).replaceAll("{partner}", partnerName);
+}
+
 export function QuizFlow() {
   const quiz = usePlayerQuiz();
   const { dispatch } = useSessionActions();
@@ -36,11 +40,9 @@ export function QuizFlow() {
   const progress = ((quiz.questionIndex + (stepIndex + 1) / steps.length) / QUESTIONS.length) * 100;
   const predicting = quiz.substep === "predict";
   const title = predicting
-    ? question.kind === "text-predict"
-      ? `А теперь угадай, какие три слова напишет ${quiz.partnerName}.`
-      : `Как думаешь, что ответит ${quiz.partnerName}?`
+    ? promptLine(question.predictPrompt, `Как думаешь, что ответит {partner}?`, quiz.partnerName)
     : question.kind === "choice-predict" || question.kind === "multi-predict"
-      ? "А что выберешь ты?"
+      ? promptLine(question.actualPrompt, "А что выберешь ты?", quiz.partnerName)
       : question.title;
 
   function persist(value: AnswerValue) {

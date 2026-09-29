@@ -1,28 +1,61 @@
 import type { PlayerAnswer } from "@/entities/question/@x/compatibility";
 
-export interface ScoreBreakdown {
-  commonPreferences: number;
-  values: number;
-  relationshipDynamics: number;
-  textSimilarity: number;
-}
+export const PREDICTION_QUESTION_IDS = [
+  "perfect-weekend",
+  "surprise-money",
+  "after-conflict",
+  "green-flag",
+  "red-flag",
+  "household-fight",
+  "relocation",
+  "earnings-future",
+  "family-future",
+  "never-forgive",
+] as const;
+
+export type DiscussionTopic = "family" | "relocation" | "earnings" | "values" | "red-flag" | "household-fight";
+
+export type ValueOverlap = 0 | 1 | 2 | 3;
 
 export interface CompatibilityScore {
   total: number;
+}
+
+export interface GuessMoment {
+  questionId: string;
+  title: string;
+  guesser: string;
+  expected: string;
+  chooser: string;
+  chosen: string;
+}
+
+export interface ReadingSide {
+  guesser: string;
+  target: string;
+  hits: number;
+  total: number;
+}
+
+export interface RoleScene {
+  id: string;
+  title: string;
+  outcome: "player1" | "player2" | "split" | "even";
   label: string;
-  breakdown: ScoreBreakdown;
 }
 
-export interface Achievement {
-  title: string;
-  description: string;
-  icon: string;
+export interface ThemeMark {
+  id: "relationship" | "money" | "home" | "spontaneity" | "career" | "future";
+  label: string;
+  agreement: number;
+  similar: boolean;
 }
 
-export interface LikelyItem {
+export interface NamedChoice {
   title: string;
-  person: string;
-  explanation: string;
+  player1: string;
+  player2: string;
+  same: boolean;
 }
 
 export interface EvaluationInput {
@@ -34,10 +67,33 @@ export interface EvaluationInput {
 
 export interface Evaluation {
   scoring: CompatibilityScore;
-  achievements: Achievement[];
-  likelyTo: LikelyItem[];
-  preferenceMatches: number;
-  moneyMatches: number;
-  whoAgreements: number;
-  threeWordsSimilarity: number;
+  reading: {
+    player1: ReadingSide;
+    player2: ReadingSide;
+    bestHit: GuessMoment | null;
+    worstMiss: GuessMoment | null;
+  };
+  helm: {
+    player1: number;
+    player2: number;
+    line: string;
+    scenes: RoleScene[];
+  };
+  traffic: {
+    green: string[];
+    interesting: string[];
+    spicy: GuessMoment | null;
+  };
+  themes: ThemeMark[];
+  values: {
+    overlap: ValueOverlap;
+    shared: string[];
+    player1: string[];
+    player2: string[];
+  };
+  discussionTopic: DiscussionTopic;
+  choices: NamedChoice[];
+  money: { surprise: NamedChoice; earnings: NamedChoice };
+  futureFamily: NamedChoice;
+  sentences: { player1: string; player2: string };
 }

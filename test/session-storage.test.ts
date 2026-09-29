@@ -33,7 +33,7 @@ describe("session storage", () => {
     installStorage();
     saveSession(createSession());
     expect(loadSession()).toBeNull();
-    localStorage.setItem("lovers-compatibility.session.v1", "{");
+    localStorage.setItem("lovers-compatibility.session.v2", "{");
     expect(loadSession()).toBeNull();
   });
 });

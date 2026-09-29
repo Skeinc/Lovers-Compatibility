@@ -31,12 +31,15 @@ export function QuestionView({
     const selected = decodeWho(value);
     return (
       <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted">
+          {selfName} отмечает себя, {partnerName} или что это поровну.
+        </p>
         {(question.scenarios ?? []).map((scenario) => {
           const choice = selected.get(scenario.id);
           return (
             <fieldset key={scenario.id} className="rounded-2xl border border-border bg-card p-4">
               <legend className="px-1 text-base text-foreground">{scenario.prompt}</legend>
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-3 gap-2">
                 <ChoiceButton
                   selected={choice === "self"}
                   onClick={() => {
@@ -45,7 +48,7 @@ export function QuestionView({
                     onChange(encodeWho(next));
                   }}
                 >
-                  {selfName}
+                  Я
                 </ChoiceButton>
                 <ChoiceButton
                   selected={choice === "partner"}
@@ -55,7 +58,17 @@ export function QuestionView({
                     onChange(encodeWho(next));
                   }}
                 >
-                  {partnerName}
+                  Партнёр
+                </ChoiceButton>
+                <ChoiceButton
+                  selected={choice === "even"}
+                  onClick={() => {
+                    const next = new Map(selected);
+                    next.set(scenario.id, "even");
+                    onChange(encodeWho(next));
+                  }}
+                >
+                  Поровну
                 </ChoiceButton>
               </div>
             </fieldset>
@@ -66,15 +79,21 @@ export function QuestionView({
   }
 
   const selected = Array.isArray(value) ? value : value ? [value] : [];
+  const max = question.maxSelections;
   return (
     <div className="flex flex-col gap-3" role="group" aria-label={question.title}>
+      {max !== undefined ? (
+        <p className="text-sm text-muted">
+          Выбрано {selected.length} из {max}
+        </p>
+      ) : null}
       {(question.options ?? []).map((option) => (
         <ChoiceButton
           key={option.id}
           selected={selected.includes(option.id)}
           onClick={() => {
             if (question.kind === "multi" || question.kind === "multi-predict") {
-              onChange(toggleMulti(selected, option.id, option.exclusive === true));
+              onChange(toggleMulti(selected, option.id, option.exclusive === true, max));
               return;
             }
             onChange(option.id);

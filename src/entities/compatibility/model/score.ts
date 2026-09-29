@@ -1,91 +1,355 @@
-import { QUESTIONS } from "@/entities/question/@x/compatibility";
-import type { AnswerValue, PlayerAnswer } from "@/entities/question/@x/compatibility";
+import {
+  decodeWho,
+  getQuestion,
+  optionLabel,
+  type AnswerValue,
+  type PlayerAnswer,
+  type WhoChoice,
+} from "@/entities/question/@x/compatibility";
 
-import { buildAchievements } from "./achievements";
-import { exactMatch, jaccard, textMatch } from "./compare";
-import { buildLikelyTo, countWhoAgreements } from "./likely-to";
-import type { Evaluation, EvaluationInput, ScoreBreakdown } from "./types";
+import { exactMatch } from "./compare";
+import {
+  PREDICTION_QUESTION_IDS,
+  type DiscussionTopic,
+  type Evaluation,
+  type EvaluationInput,
+  type GuessMoment,
+  type NamedChoice,
+  type RoleScene,
+  type ThemeMark,
+  type ValueOverlap,
+} from "./types";
+
+const SPOTLIGHT = [
+  "red-flag",
+  "green-flag",
+  "relocation",
+  "perfect-weekend",
+  "surprise-money",
+  "after-conflict",
+  "household-fight",
+  "earnings-future",
+  "family-future",
+  "never-forgive",
+] as const;
+
+const CLOSED_MATCH_IDS = [
+  "perfect-weekend",
+  "surprise-money",
+  "after-conflict",
+  "household-fight",
+  "relocation",
+  "family-future",
+  "never-forgive",
+  "typical-scene",
+] as const;
 
 function answerOf(answers: PlayerAnswer[], questionId: string): PlayerAnswer | undefined {
   return answers.find((item) => item.questionId === questionId);
 }
 
-function actual(answers: PlayerAnswer[], questionId: string): AnswerValue | undefined {
-  return answerOf(answers, questionId)?.answer;
+function field(answers: PlayerAnswer[], questionId: string, key: "answer" | "prediction"): AnswerValue | undefined {
+  return answerOf(answers, questionId)?.[key];
 }
 
-export function scoreLabel(total: number): string {
-  if (total >= 90) return "Почти один ритм";
-  if (total >= 75) return "Очень близко смотрите на жизнь";
-  if (total >= 60) return "В главном вы совпадаете";
-  if (total >= 45) return "Вы разные, и в этом есть химия";
-  return "Свой вкус у каждого";
+function textOf(value: AnswerValue | undefined): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
+function labelOf(questionId: string, value: AnswerValue | undefined): string {
+  const question = getQuestion(questionId);
+  if (!question || typeof value !== "string" || value === "") return "";
+  return optionLabel(question, value);
+}
+
+function idsOf(value: AnswerValue | undefined): string[] {
+  return Array.isArray(value) ? value.filter((item) => item !== "") : [];
+}
+
+function labelsOf(questionId: string, value: AnswerValue | undefined): string[] {
+  const question = getQuestion(questionId);
+  if (!question) return [];
+  return idsOf(value).map((id) => optionLabel(question, id));
+}
+
+type Earner = "player1" | "player2" | "equal" | "unsure";
+
+function earnerPicture(player: 1 | 2, value: AnswerValue | undefined): Earner | null {
+  if (value === "equal") return "equal";
+  if (value === "unsure") return "unsure";
+  if (value === "self") return player === 1 ? "player1" : "player2";
+  if (value === "partner") return player === 1 ? "player2" : "player1";
+  return null;
+}
+
+function earnerLabel(playerName: string, partnerName: string, value: AnswerValue | undefined): string {
+  if (value === "self") return playerName;
+  if (value === "partner") return partnerName;
+  if (value === "equal") return "Примерно одинаково";
+  if (value === "unsure") return "Сложно сказать";
+  return "";
+}
+
+function overlapOf(left: string[], right: string[]): ValueOverlap {
+  const rightSet = new Set(right);
+  let count = 0;
+  for (const item of new Set(left)) {
+    if (rightSet.has(item)) count += 1;
+  }
+  if (count >= 3) return 3;
+  if (count === 2) return 2;
+  if (count === 1) return 1;
+  return 0;
+}
+
+function pointTarget(player: 1 | 2, choice: WhoChoice): "player1" | "player2" | "even" {
+  if (choice === "even") return "even";
+  if (choice === "self") return player === 1 ? "player1" : "player2";
+  return player === 1 ? "player2" : "player1";
+}
+
+function helmLine(player1Name: string, player2Name: string, player1: number, player2: number): string {
+  if (player1 === 0 && player2 === 0) {
+    return "Роли вы раздали по-разному. Ни одна сцена не собрала одного человека с двух сторон.";
+  }
+  if (player1 === player2) return "У вас демократия. Подозрительно честная.";
+  const leader = player1 > player2 ? player1Name : player2Name;
+  const points = Math.max(player1, player2);
+  if (points >= 5) return `${leader} чаще оказывается за штурвалом: ${points} из 8 сцен.`;
+  return `Формально у вас равноправие. На практике решения чаще остаются за ${leader}.`;
 }
 
 export function evaluateCompatibility(input: EvaluationInput): Evaluation {
-  const { player1, player2 } = input;
-  const weekend = exactMatch(actual(player1, "perfect-weekend"), actual(player2, "perfect-weekend")) ? 10 : 0;
-  const date = exactMatch(actual(player1, "ideal-date"), actual(player2, "ideal-date")) ? 10 : 0;
-  const city = exactMatch(actual(player1, "lost-in-city"), actual(player2, "lost-in-city")) ? 8 : 0;
-  const commonPreferences = weekend + date + city;
+  const { player1, player2, player1Name, player2Name } = input;
+  const total = PREDICTION_QUESTION_IDS.length;
 
-  const money = exactMatch(actual(player1, "surprise-money"), actual(player2, "surprise-money")) ? 16 : 0;
-  const hours = exactMatch(actual(player1, "extra-hours"), actual(player2, "extra-hours")) ? 16 : 0;
-  const values = money + hours;
+  function hitsFrom(guesser: PlayerAnswer[], target: PlayerAnswer[]): number {
+    return PREDICTION_QUESTION_IDS.filter((id) => {
+      const predicted = textOf(field(guesser, id, "prediction"));
+      const actual = textOf(field(target, id, "answer"));
+      return predicted !== "" && predicted === actual;
+    }).length;
+  }
 
-  const conflict = exactMatch(actual(player1, "after-conflict"), actual(player2, "after-conflict")) ? 7 : 0;
-  const irritation = jaccard(actual(player1, "future-irritation"), actual(player2, "future-irritation")) * 6;
-  const whoAgreements = countWhoAgreements(
-    actual(player1, "who-is-more-likely"),
-    actual(player2, "who-is-more-likely"),
-  );
-  const whoScore = (whoAgreements / 6) * 8;
-  const relationshipDynamics = round2(conflict + irritation + whoScore);
+  function moment(questionId: string, direction: 1 | 2): GuessMoment | null {
+    const question = getQuestion(questionId);
+    const guesser = direction === 1 ? player1 : player2;
+    const chooser = direction === 1 ? player2 : player1;
+    const expected = labelOf(questionId, field(guesser, questionId, "prediction"));
+    const chosen = labelOf(questionId, field(chooser, questionId, "answer"));
+    if (!question || expected === "" || chosen === "") return null;
+    return {
+      questionId,
+      title: question.title,
+      guesser: direction === 1 ? player1Name : player2Name,
+      expected,
+      chooser: direction === 1 ? player2Name : player1Name,
+      chosen,
+    };
+  }
 
-  const freeYear = textMatch(actual(player1, "free-year"), actual(player2, "free-year"));
-  const threeWordsSimilarity = textMatch(actual(player1, "three-words"), actual(player2, "three-words"));
-  const textSimilarityScore = round2(freeYear * 6 + threeWordsSimilarity * 13);
+  function guessed(questionId: string, direction: 1 | 2): boolean {
+    const guesserAnswers = direction === 1 ? player1 : player2;
+    const chooserAnswers = direction === 1 ? player2 : player1;
+    const predicted = textOf(field(guesserAnswers, questionId, "prediction"));
+    const actual = textOf(field(chooserAnswers, questionId, "answer"));
+    return predicted !== "" && predicted === actual;
+  }
 
-  const breakdown: ScoreBreakdown = {
-    commonPreferences,
-    values,
-    relationshipDynamics,
-    textSimilarity: textSimilarityScore,
-  };
-  const precise =
-    commonPreferences + values + conflict + irritation + whoScore + freeYear * 6 + threeWordsSimilarity * 13;
-  const total = Math.max(0, Math.min(100, Math.round(precise)));
-  const preferenceMatches = Number(weekend > 0) + Number(date > 0) + Number(city > 0);
-  const moneyMatches = Number(money > 0) + Number(hours > 0);
-  const scoring = { total, label: scoreLabel(total), breakdown };
-  const achievements = buildAchievements({
-    preferenceMatches,
-    moneyMatches,
-    whoAgreements,
-    threeWordsSimilarity,
-    total,
+  function spotlight(kind: "hit" | "miss"): GuessMoment | null {
+    for (const id of SPOTLIGHT) {
+      const first = guessed(id, 1);
+      const second = guessed(id, 2);
+      const directions: Array<1 | 2> = [1, 2];
+      for (const direction of directions) {
+        const matched = direction === 1 ? first : second;
+        if (kind === "hit" ? matched : !matched) {
+          const found = moment(id, direction);
+          if (found) return found;
+        }
+      }
+    }
+    return null;
+  }
+
+  function spotlightRed(): GuessMoment | null {
+    if (!guessed("red-flag", 1)) return moment("red-flag", 1);
+    if (!guessed("red-flag", 2)) return moment("red-flag", 2);
+    return moment("red-flag", 1);
+  }
+
+  const earningsSame =
+    earnerPicture(1, field(player1, "earnings-future", "answer")) !== null &&
+    earnerPicture(1, field(player1, "earnings-future", "answer")) ===
+      earnerPicture(2, field(player2, "earnings-future", "answer"));
+
+  const closedHits =
+    CLOSED_MATCH_IDS.filter((id) => exactMatch(field(player1, id, "answer"), field(player2, id, "answer"))).length +
+    Number(earningsSame);
+
+  const valueIds1 = idsOf(field(player1, "future-values", "answer"));
+  const valueIds2 = idsOf(field(player2, "future-values", "answer"));
+  const overlap = overlapOf(valueIds1, valueIds2);
+  const sharedIds = valueIds1.filter((id) => valueIds2.includes(id));
+
+  const who = getQuestion("who-leads");
+  const leftWho = decodeWho(field(player1, "who-leads", "answer"));
+  const rightWho = decodeWho(field(player2, "who-leads", "answer"));
+  let player1Points = 0;
+  let player2Points = 0;
+  const scenes: RoleScene[] = (who?.scenarios ?? []).map((scenario) => {
+    const left = leftWho.get(scenario.id);
+    const right = rightWho.get(scenario.id);
+    let outcome: RoleScene["outcome"] = "split";
+    if (left && right && left !== "even" && right !== "even") {
+      const pointedLeft = pointTarget(1, left);
+      const pointedRight = pointTarget(2, right);
+      if (pointedLeft === pointedRight && pointedLeft !== "even") outcome = pointedLeft;
+    } else if (left === "even" || right === "even") {
+      outcome = "even";
+    }
+    if (outcome === "player1") player1Points += 1;
+    if (outcome === "player2") player2Points += 1;
+    const label =
+      outcome === "player1"
+        ? player1Name
+        : outcome === "player2"
+          ? player2Name
+          : outcome === "even"
+            ? "Поровну"
+            : "Спор";
+    return { id: scenario.id, title: scenario.prompt, outcome, label };
   });
 
-  return {
-    scoring,
-    achievements,
-    likelyTo: buildLikelyTo(
-      actual(player1, "who-is-more-likely"),
-      actual(player2, "who-is-more-likely"),
-      input.player1Name,
-      input.player2Name,
-    ),
-    preferenceMatches,
-    moneyMatches,
-    whoAgreements,
-    threeWordsSimilarity,
-  };
-}
+  const agreedScenes = player1Points + player2Points;
+  const agreementPercent = Math.max(
+    0,
+    Math.min(100, Math.round((closedHits / 9) * 70 + (overlap / 3) * 15 + (agreedScenes / 8) * 15)),
+  );
 
-export function questionCount(): number {
-  return QUESTIONS.length;
+  function named(questionId: string, same: boolean, player1Text: string, player2Text: string): NamedChoice {
+    return { title: getQuestion(questionId)?.title ?? questionId, player1: player1Text, player2: player2Text, same };
+  }
+
+  const surpriseSame = exactMatch(
+    field(player1, "surprise-money", "answer"),
+    field(player2, "surprise-money", "answer"),
+  );
+  const relocationSame = exactMatch(field(player1, "relocation", "answer"), field(player2, "relocation", "answer"));
+  const familySame = exactMatch(field(player1, "family-future", "answer"), field(player2, "family-future", "answer"));
+  const fightSame = exactMatch(field(player1, "after-conflict", "answer"), field(player2, "after-conflict", "answer"));
+  const householdSame = exactMatch(
+    field(player1, "household-fight", "answer"),
+    field(player2, "household-fight", "answer"),
+  );
+  const weekendSame = exactMatch(
+    field(player1, "perfect-weekend", "answer"),
+    field(player2, "perfect-weekend", "answer"),
+  );
+
+  const interesting: string[] = [];
+  if (!relocationSame) interesting.push("Переезд");
+  if (!familySame) interesting.push("Семья через 10 лет");
+  if (!surpriseSame || !earningsSame) interesting.push("Деньги");
+  if (overlap <= 1) interesting.push("Ценности");
+
+  const green1 = labelOf("green-flag", field(player1, "green-flag", "answer"));
+  const green2 = labelOf("green-flag", field(player2, "green-flag", "answer"));
+  const green =
+    green1 !== "" && green1 === green2
+      ? [green1]
+      : [green1 !== "" ? `${player1Name}: ${green1}` : "", green2 !== "" ? `${player2Name}: ${green2}` : ""].filter(
+          (item) => item !== "",
+        );
+
+  const themes: ThemeMark[] = (
+    [
+      { id: "relationship", label: "Отношения", agreement: fightSame ? 1 : 0 },
+      { id: "money", label: "Деньги", agreement: (Number(surpriseSame) + Number(earningsSame)) / 2 },
+      { id: "home", label: "Быт", agreement: householdSame ? 1 : 0 },
+      { id: "spontaneity", label: "Спонтанность", agreement: weekendSame ? 1 : 0 },
+      { id: "career", label: "Карьера", agreement: relocationSame ? 1 : 0 },
+      { id: "future", label: "Будущее", agreement: (Number(familySame) + overlap / 3) / 2 },
+    ] as const
+  ).map((theme) => ({ ...theme, similar: theme.agreement >= 0.5 }));
+
+  let discussionTopic: DiscussionTopic = "household-fight";
+  if (!familySame) discussionTopic = "family";
+  else if (!relocationSame) discussionTopic = "relocation";
+  else if (!earningsSame) discussionTopic = "earnings";
+  else if (overlap <= 1) discussionTopic = "values";
+  else if (!guessed("red-flag", 1) || !guessed("red-flag", 2)) discussionTopic = "red-flag";
+  else if (!householdSame) discussionTopic = "household-fight";
+
+  return {
+    scoring: { total: agreementPercent },
+    reading: {
+      player1: { guesser: player1Name, target: player2Name, hits: hitsFrom(player1, player2), total },
+      player2: { guesser: player2Name, target: player1Name, hits: hitsFrom(player2, player1), total },
+      bestHit: spotlight("hit"),
+      worstMiss: spotlight("miss"),
+    },
+    helm: {
+      player1: player1Points,
+      player2: player2Points,
+      line: helmLine(player1Name, player2Name, player1Points, player2Points),
+      scenes,
+    },
+    traffic: {
+      green,
+      interesting,
+      spicy: spotlightRed(),
+    },
+    themes,
+    values: {
+      overlap,
+      shared: labelsOf("future-values", sharedIds),
+      player1: labelsOf("future-values", valueIds1),
+      player2: labelsOf("future-values", valueIds2),
+    },
+    discussionTopic,
+    choices: [
+      ...CLOSED_MATCH_IDS.map((id) =>
+        named(
+          id,
+          exactMatch(field(player1, id, "answer"), field(player2, id, "answer")),
+          labelOf(id, field(player1, id, "answer")),
+          labelOf(id, field(player2, id, "answer")),
+        ),
+      ),
+      named("green-flag", green1 !== "" && green1 === green2, green1, green2),
+      named(
+        "red-flag",
+        labelOf("red-flag", field(player1, "red-flag", "answer")) ===
+          labelOf("red-flag", field(player2, "red-flag", "answer")) &&
+          labelOf("red-flag", field(player1, "red-flag", "answer")) !== "",
+        labelOf("red-flag", field(player1, "red-flag", "answer")),
+        labelOf("red-flag", field(player2, "red-flag", "answer")),
+      ),
+    ],
+    money: {
+      surprise: named(
+        "surprise-money",
+        surpriseSame,
+        labelOf("surprise-money", field(player1, "surprise-money", "answer")),
+        labelOf("surprise-money", field(player2, "surprise-money", "answer")),
+      ),
+      earnings: named(
+        "earnings-future",
+        earningsSame,
+        earnerLabel(player1Name, player2Name, field(player1, "earnings-future", "answer")),
+        earnerLabel(player2Name, player1Name, field(player2, "earnings-future", "answer")),
+      ),
+    },
+    futureFamily: named(
+      "family-future",
+      familySame,
+      labelOf("family-future", field(player1, "family-future", "answer")),
+      labelOf("family-future", field(player2, "family-future", "answer")),
+    ),
+    sentences: {
+      player1: textOf(field(player1, "couple-sentence", "answer")),
+      player2: textOf(field(player2, "couple-sentence", "answer")),
+    },
+  };
 }

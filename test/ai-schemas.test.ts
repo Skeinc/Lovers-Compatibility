@@ -4,25 +4,22 @@ import { aiNarrativeSchema } from "@/shared/api";
 
 describe("aiNarrativeSchema", () => {
   it("rejects a payload without the required narrative", () => {
-    const parsed = aiNarrativeSchema.safeParse({ summary: "коротко" });
+    const parsed = aiNarrativeSchema.safeParse({ insight: "коротко" });
     expect(parsed.success).toBe(false);
   });
 
   it("accepts a narrative and ignores a smuggled score field", () => {
     const parsed = aiNarrativeSchema.safeParse({
-      compatibilityScore: 99,
-      archetype: { name: "Два сапога", description: "Похожие будни и разный вечер." },
-      summary: "Вы часто выбираете один ритм, но вечер представляете по-разному.",
-      strengths: [{ title: "Деньги", description: "Оба отложили бы внезапную сумму." }],
-      differences: [{ title: "Выходной", description: "Один остаётся дома, второй уже смотрит билеты." }],
-      surprisingAnswers: [],
-      roast: "Билеты и плед пока живут в разных головах. Хорошо, что ссора у вас короткая.",
-      positiveObservation: "В тексте про черту партнёра есть конкретная нежность.",
-      finalVerdict: "Вы не одинаковые — и по ответам вам это не мешает.",
+      agreementPercent: 99,
+      roleName: "Инициатор + Стабилизатор",
+      insight: "Дима угадал 6 из 10, а в переезде оба выбрали «только вместе».",
+      paradox: "Выходной у обоих про дом, а 100 000 ₽ один откладывает и второй тратит на поездку.",
+      discussQuestion: "Работа мечты в другом городе: вы едете вместе или каждый решает сам?",
+      finalScene: "Дима: «Давай».\nНастя: «Только вместе».\nОба остаются выбирать доставку.",
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect("compatibilityScore" in parsed.data).toBe(false);
+      expect("agreementPercent" in parsed.data).toBe(false);
     }
   });
 });

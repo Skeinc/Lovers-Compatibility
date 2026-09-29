@@ -5,7 +5,7 @@ import type { QuizSession } from "./types";
 export function createSession(now = new Date().toISOString()): QuizSession {
   return {
     id: crypto.randomUUID(),
-    version: 1,
+    version: 2,
     createdAt: now,
     updatedAt: now,
     phase: "landing",

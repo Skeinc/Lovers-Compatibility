@@ -18,17 +18,6 @@ function stripFences(content: string): string {
   return fenced?.[1]?.trim() ?? trimmed;
 }
 
-function withLocalFacts(
-  narrative: ReturnType<typeof aiNarrativeSchema.parse>,
-  input: CompatibilityAnalysisInput,
-): CompatibilityReport {
-  return {
-    ...narrative,
-    likelyTo: input.likelyTo,
-    achievements: input.achievements,
-  };
-}
-
 async function requestReport(input: CompatibilityAnalysisInput): Promise<CompatibilityReport> {
   const config = readAiConfig();
   if (!config) throw new Error("AI не настроен");
@@ -46,6 +35,7 @@ async function requestReport(input: CompatibilityAnalysisInput): Promise<Compati
         model: config.model,
         temperature: 0.7,
         response_format: { type: "json_object" },
+        thinking: { type: "disabled" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: JSON.stringify(input) },
@@ -57,8 +47,7 @@ async function requestReport(input: CompatibilityAnalysisInput): Promise<Compati
     const payload = chatResponseSchema.parse(parseJson(await response.text()));
     const content = payload.choices[0]?.message.content;
     if (!content) throw new Error("Пустой ответ AI");
-    const narrative = aiNarrativeSchema.parse(parseJson(stripFences(content)));
-    return withLocalFacts(narrative, input);
+    return aiNarrativeSchema.parse(parseJson(stripFences(content)));
   } catch (error) {
     if (error instanceof Error) throw new Error(readErrorMessage(error), { cause: error });
     throw new Error("Не удалось разобрать ответ AI", { cause: error });

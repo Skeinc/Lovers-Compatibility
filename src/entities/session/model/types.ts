@@ -15,7 +15,7 @@ export interface PlayerAnswers {
 
 export interface QuizSession {
   id: string;
-  version: 1;
+  version: 2;
   createdAt: string;
   updatedAt: string;
   phase: Phase;

@@ -7,18 +7,11 @@ const answerValueSchema = z.union([z.string(), z.array(z.string())]);
 
 const scoreSchema = z.object({
   total: z.number(),
-  label: z.string(),
-  breakdown: z.object({
-    commonPreferences: z.number(),
-    values: z.number(),
-    relationshipDynamics: z.number(),
-    textSimilarity: z.number(),
-  }),
 });
 
 export const quizSessionSchema = z.object({
   id: z.string().min(1),
-  version: z.literal(1),
+  version: z.literal(2),
   createdAt: z.string(),
   updatedAt: z.string(),
   phase: z.enum([
@@ -33,7 +26,7 @@ export const quizSessionSchema = z.object({
     "results",
   ]),
   setupStep: z.number().int().min(0).max(4),
-  questionIndex: z.number().int().min(0).max(11),
+  questionIndex: z.number().int().min(0).max(13),
   substep: z.enum(["predict", "actual"]),
   couple: coupleProfileSchema.nullable(),
   draft: coupleDraftSchema,

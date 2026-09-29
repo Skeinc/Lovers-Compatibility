@@ -2,14 +2,17 @@ export function buildShareText(input: {
   player1: string;
   player2: string;
   total: number;
-  label: string;
-  archetype: string;
-  verdict: string;
+  roleName: string;
+  insight: string;
 }): string {
-  const lines = [`${input.player1} × ${input.player2}`];
-  if (input.total >= 75) lines.push(`${input.total}% — ${input.label}`);
-  lines.push(input.archetype, input.verdict, "", "Lovers Compatibility");
-  return lines.join("\n");
+  return [
+    `${input.player1} × ${input.player2}`,
+    `${input.total}% — совпадение по вашим ответам`,
+    input.roleName,
+    input.insight,
+    "",
+    "Lovers Compatibility",
+  ].join("\n");
 }
 
 export async function shareResult(text: string): Promise<"shared" | "copied" | "cancelled" | "failed"> {

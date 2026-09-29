@@ -1,9 +1,10 @@
-export { evaluateCompatibility, scoreLabel } from "./model/score";
+export { evaluateCompatibility } from "./model/score";
+export { PREDICTION_QUESTION_IDS } from "./model/types";
 export type {
-  Achievement,
   CompatibilityScore,
+  DiscussionTopic,
   Evaluation,
   EvaluationInput,
-  LikelyItem,
-  ScoreBreakdown,
+  GuessMoment,
+  ValueOverlap,
 } from "./model/types";

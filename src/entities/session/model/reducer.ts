@@ -107,7 +107,7 @@ function firstSubstep(): Substep {
 export function sessionReducer(state: QuizSession, action: SessionAction): QuizSession {
   switch (action.type) {
     case "hydrate": {
-      if (action.session.version !== 1) return state;
+      if (action.session.version !== 2) return state;
       const next = action.session;
       const hidden: Phase[] = ["setup", "player1-intro", "player1", "handoff"];
       if (next.player1Locked && hidden.includes(next.phase)) {
