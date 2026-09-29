@@ -3,28 +3,27 @@ import { toast } from "sonner";
 
 import { Button } from "@/shared/ui/button";
 
-import { buildShareText, shareResult } from "../model/share";
+import { shareResultPdf } from "../model/share";
 
-export function ShareButton(input: {
-  player1: string;
-  player2: string;
-  total: number;
-  roleName: string;
-  insight: string;
-}) {
+export function ShareButton(input: { player1: string; player2: string; getSheet: () => HTMLElement | null }) {
   const [pending, setPending] = useState(false);
 
   async function onShare() {
+    const sheet = input.getSheet();
+    if (!sheet) {
+      toast.error("Не получилось собрать PDF результата.");
+      return;
+    }
     setPending(true);
-    const result = await shareResult(buildShareText(input));
+    const result = await shareResultPdf(sheet, input);
     setPending(false);
-    if (result === "copied") toast.success("Текст результата скопирован");
-    if (result === "failed") toast.error("Не получилось поделиться. Сделайте скриншот карточки.");
+    if (result === "downloaded") toast.success("PDF с результатом сохранён");
+    if (result === "failed") toast.error("Не получилось собрать PDF результата.");
   }
 
   return (
     <Button variant="outline" disabled={pending} onClick={() => void onShare()}>
-      Поделиться результатом
+      {pending ? "Собираем PDF…" : "Поделиться результатом"}
     </Button>
   );
 }

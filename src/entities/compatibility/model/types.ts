@@ -44,11 +44,26 @@ export interface RoleScene {
   label: string;
 }
 
-export interface ThemeMark {
-  id: "relationship" | "money" | "home" | "spontaneity" | "career" | "future";
+export type DomainId = "relationships" | "money" | "household" | "spontaneity" | "career" | "future";
+
+export interface DomainInsight {
+  id: DomainId;
   label: string;
-  agreement: number;
-  similar: boolean;
+  score: number;
+  questionIds: string[];
+}
+
+export interface FlagSide {
+  selfImage: string;
+  seesInPartner: string;
+  matched: boolean;
+}
+
+export interface FlagMirror {
+  id: "green-flag" | "red-flag";
+  title: string;
+  player1: FlagSide;
+  player2: FlagSide;
 }
 
 export interface NamedChoice {
@@ -70,30 +85,35 @@ export interface Evaluation {
   reading: {
     player1: ReadingSide;
     player2: ReadingSide;
+    hits: GuessMoment[];
+    misses: GuessMoment[];
     bestHit: GuessMoment | null;
     worstMiss: GuessMoment | null;
   };
+  flags: { green: FlagMirror; red: FlagMirror };
   helm: {
     player1: number;
     player2: number;
-    line: string;
+    disputes: number;
+    headline: string;
     scenes: RoleScene[];
   };
-  traffic: {
-    green: string[];
-    interesting: string[];
-    spicy: GuessMoment | null;
-  };
-  themes: ThemeMark[];
+  domains: DomainInsight[];
   values: {
     overlap: ValueOverlap;
     shared: string[];
+    sharedIds: string[];
+    onlyPlayer1: string[];
+    onlyPlayer2: string[];
     player1: string[];
     player2: string[];
+    player1Ids: string[];
+    player2Ids: string[];
   };
   discussionTopic: DiscussionTopic;
   choices: NamedChoice[];
   money: { surprise: NamedChoice; earnings: NamedChoice };
+  relocation: NamedChoice;
   futureFamily: NamedChoice;
   sentences: { player1: string; player2: string };
 }

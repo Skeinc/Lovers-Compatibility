@@ -11,25 +11,26 @@ import { exactMatch } from "./compare";
 import {
   PREDICTION_QUESTION_IDS,
   type DiscussionTopic,
+  type DomainInsight,
   type Evaluation,
   type EvaluationInput,
+  type FlagMirror,
   type GuessMoment,
   type NamedChoice,
   type RoleScene,
-  type ThemeMark,
   type ValueOverlap,
 } from "./types";
 
 const SPOTLIGHT = [
   "red-flag",
-  "green-flag",
   "relocation",
   "perfect-weekend",
   "surprise-money",
-  "after-conflict",
   "household-fight",
+  "after-conflict",
   "earnings-future",
   "family-future",
+  "green-flag",
   "never-forgive",
 ] as const;
 
@@ -108,15 +109,16 @@ function pointTarget(player: 1 | 2, choice: WhoChoice): "player1" | "player2" | 
   return player === 1 ? "player2" : "player1";
 }
 
-function helmLine(player1Name: string, player2Name: string, player1: number, player2: number): string {
-  if (player1 === 0 && player2 === 0) {
-    return "Роли вы раздали по-разному. Ни одна сцена не собрала одного человека с двух сторон.";
-  }
-  if (player1 === player2) return "У вас демократия. Подозрительно честная.";
+function helmHeadline(
+  player1Name: string,
+  player2Name: string,
+  player1: number,
+  player2: number,
+  disputes: number,
+): string {
+  if (player1 === player2) return disputes > 0 ? "Демократия с элементами спора" : "Делите штурвал";
   const leader = player1 > player2 ? player1Name : player2Name;
-  const points = Math.max(player1, player2);
-  if (points >= 5) return `${leader} чаще оказывается за штурвалом: ${points} из 8 сцен.`;
-  return `Формально у вас равноправие. На практике решения чаще остаются за ${leader}.`;
+  return `${leader} чаще берёт инициативу`;
 }
 
 export function evaluateCompatibility(input: EvaluationInput): Evaluation {
@@ -172,10 +174,38 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
     return null;
   }
 
-  function spotlightRed(): GuessMoment | null {
-    if (!guessed("red-flag", 1)) return moment("red-flag", 1);
-    if (!guessed("red-flag", 2)) return moment("red-flag", 2);
-    return moment("red-flag", 1);
+  function calls(hit: boolean): GuessMoment[] {
+    const found: GuessMoment[] = [];
+    for (const id of PREDICTION_QUESTION_IDS) {
+      const directions = [1, 2] as const;
+      for (const direction of directions) {
+        if (guessed(id, direction) !== hit) continue;
+        const item = moment(id, direction);
+        if (item) found.push(item);
+      }
+    }
+    return found;
+  }
+
+  function flagMirror(id: "green-flag" | "red-flag", title: string): FlagMirror {
+    const player1Self = textOf(field(player1, id, "prediction"));
+    const player2Self = textOf(field(player2, id, "prediction"));
+    const player1Sees = textOf(field(player1, id, "answer"));
+    const player2Sees = textOf(field(player2, id, "answer"));
+    return {
+      id,
+      title,
+      player1: {
+        selfImage: labelOf(id, player1Self),
+        seesInPartner: labelOf(id, player1Sees),
+        matched: player1Self !== "" && player1Self === player2Sees,
+      },
+      player2: {
+        selfImage: labelOf(id, player2Self),
+        seesInPartner: labelOf(id, player2Sees),
+        matched: player2Self !== "" && player2Self === player1Sees,
+      },
+    };
   }
 
   const earningsSame =
@@ -217,10 +247,11 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
           ? player2Name
           : outcome === "even"
             ? "Поровну"
-            : "Спор";
+            : "По-разному";
     return { id: scenario.id, title: scenario.prompt, outcome, label };
   });
 
+  const disputes = scenes.filter((scene) => scene.outcome === "split").length;
   const agreedScenes = player1Points + player2Points;
   const agreementPercent = Math.max(
     0,
@@ -247,31 +278,28 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
     field(player2, "perfect-weekend", "answer"),
   );
 
-  const interesting: string[] = [];
-  if (!relocationSame) interesting.push("Переезд");
-  if (!familySame) interesting.push("Семья через 10 лет");
-  if (!surpriseSame || !earningsSame) interesting.push("Деньги");
-  if (overlap <= 1) interesting.push("Ценности");
+  const moneyValueMatch = valueIds1.includes("money") === valueIds2.includes("money") ? 1 : 0;
+  const onlyIds1 = valueIds1.filter((id) => !valueIds2.includes(id));
+  const onlyIds2 = valueIds2.filter((id) => !valueIds1.includes(id));
 
-  const green1 = labelOf("green-flag", field(player1, "green-flag", "answer"));
-  const green2 = labelOf("green-flag", field(player2, "green-flag", "answer"));
-  const green =
-    green1 !== "" && green1 === green2
-      ? [green1]
-      : [green1 !== "" ? `${player1Name}: ${green1}` : "", green2 !== "" ? `${player2Name}: ${green2}` : ""].filter(
-          (item) => item !== "",
-        );
-
-  const themes: ThemeMark[] = (
-    [
-      { id: "relationship", label: "Отношения", agreement: fightSame ? 1 : 0 },
-      { id: "money", label: "Деньги", agreement: (Number(surpriseSame) + Number(earningsSame)) / 2 },
-      { id: "home", label: "Быт", agreement: householdSame ? 1 : 0 },
-      { id: "spontaneity", label: "Спонтанность", agreement: weekendSame ? 1 : 0 },
-      { id: "career", label: "Карьера", agreement: relocationSame ? 1 : 0 },
-      { id: "future", label: "Будущее", agreement: (Number(familySame) + overlap / 3) / 2 },
-    ] as const
-  ).map((theme) => ({ ...theme, similar: theme.agreement >= 0.5 }));
+  const domains: DomainInsight[] = [
+    { id: "relationships", label: "Отношения", score: fightSame ? 1 : 0, questionIds: ["after-conflict"] },
+    {
+      id: "money",
+      label: "Деньги",
+      score: (Number(surpriseSame) + Number(earningsSame) + moneyValueMatch) / 3,
+      questionIds: ["surprise-money", "earnings-future", "future-values"],
+    },
+    { id: "household", label: "Быт", score: householdSame ? 1 : 0, questionIds: ["household-fight"] },
+    { id: "spontaneity", label: "Спонтанность", score: weekendSame ? 1 : 0, questionIds: ["perfect-weekend"] },
+    { id: "career", label: "Карьера", score: relocationSame ? 1 : 0, questionIds: ["relocation"] },
+    {
+      id: "future",
+      label: "Будущее",
+      score: (Number(familySame) + overlap / 3) / 2,
+      questionIds: ["family-future", "future-values"],
+    },
+  ];
 
   let discussionTopic: DiscussionTopic = "household-fight";
   if (!familySame) discussionTopic = "family";
@@ -286,26 +314,33 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
     reading: {
       player1: { guesser: player1Name, target: player2Name, hits: hitsFrom(player1, player2), total },
       player2: { guesser: player2Name, target: player1Name, hits: hitsFrom(player2, player1), total },
+      hits: calls(true),
+      misses: calls(false),
       bestHit: spotlight("hit"),
       worstMiss: spotlight("miss"),
+    },
+    flags: {
+      green: flagMirror("green-flag", "Green flag"),
+      red: flagMirror("red-flag", "Red flag"),
     },
     helm: {
       player1: player1Points,
       player2: player2Points,
-      line: helmLine(player1Name, player2Name, player1Points, player2Points),
+      disputes,
+      headline: helmHeadline(player1Name, player2Name, player1Points, player2Points, disputes),
       scenes,
     },
-    traffic: {
-      green,
-      interesting,
-      spicy: spotlightRed(),
-    },
-    themes,
+    domains,
     values: {
       overlap,
       shared: labelsOf("future-values", sharedIds),
+      sharedIds,
+      onlyPlayer1: labelsOf("future-values", onlyIds1),
+      onlyPlayer2: labelsOf("future-values", onlyIds2),
       player1: labelsOf("future-values", valueIds1),
       player2: labelsOf("future-values", valueIds2),
+      player1Ids: valueIds1,
+      player2Ids: valueIds2,
     },
     discussionTopic,
     choices: [
@@ -317,7 +352,14 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
           labelOf(id, field(player2, id, "answer")),
         ),
       ),
-      named("green-flag", green1 !== "" && green1 === green2, green1, green2),
+      named(
+        "green-flag",
+        labelOf("green-flag", field(player1, "green-flag", "answer")) !== "" &&
+          labelOf("green-flag", field(player1, "green-flag", "answer")) ===
+            labelOf("green-flag", field(player2, "green-flag", "answer")),
+        labelOf("green-flag", field(player1, "green-flag", "answer")),
+        labelOf("green-flag", field(player2, "green-flag", "answer")),
+      ),
       named(
         "red-flag",
         labelOf("red-flag", field(player1, "red-flag", "answer")) ===
@@ -341,6 +383,12 @@ export function evaluateCompatibility(input: EvaluationInput): Evaluation {
         earnerLabel(player2Name, player1Name, field(player2, "earnings-future", "answer")),
       ),
     },
+    relocation: named(
+      "relocation",
+      relocationSame,
+      labelOf("relocation", field(player1, "relocation", "answer")),
+      labelOf("relocation", field(player2, "relocation", "answer")),
+    ),
     futureFamily: named(
       "family-future",
       familySame,

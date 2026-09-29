@@ -5,6 +5,8 @@ export type {
   DiscussionTopic,
   Evaluation,
   EvaluationInput,
+  FlagMirror,
+  FlagSide,
   GuessMoment,
   ValueOverlap,
 } from "./model/types";

@@ -9,7 +9,7 @@ const scoreSchema = z.object({
   total: z.number(),
 });
 
-export const quizSessionSchema = z.object({
+const quizSessionObjectSchema = z.object({
   id: z.string().min(1),
   version: z.literal(2),
   createdAt: z.string(),
@@ -56,3 +56,16 @@ export const quizSessionSchema = z.object({
   reportSource: z.enum(["ai", "fallback"]).optional(),
   fallbackReason: z.enum(["missing-config", "error"]).optional(),
 });
+
+function dropStaleReport(value: unknown): unknown {
+  if (!value || typeof value !== "object") return value;
+  const record = { ...(value as Record<string, unknown>) };
+  if (compatibilityReportSchema.safeParse(record.report).success) return record;
+  delete record.report;
+  delete record.reportSource;
+  delete record.fallbackReason;
+  if (record.phase === "results") record.phase = "analyzing";
+  return record;
+}
+
+export const quizSessionSchema = z.preprocess(dropStaleReport, quizSessionObjectSchema);
