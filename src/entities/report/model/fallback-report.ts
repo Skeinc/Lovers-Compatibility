@@ -1,6 +1,5 @@
 import { getQuestion, optionLabel } from "@/entities/question/@x/report";
 import type { AnswerValue, PlayerAnswer } from "@/entities/question/@x/report";
-import { toAccusative } from "@/shared/lib/ru-name";
 import type { CompatibilityReport } from "@/shared/api";
 
 import { exactList } from "./answer-sets";
@@ -138,7 +137,7 @@ export function buildFallbackReport(context: ReportContext): CompatibilityReport
     partnerKnowledge: {
       player1Score: evaluation.predictions.player1Percent,
       player2Score: evaluation.predictions.player2Percent,
-      explanation: `${player1.name} угадывает ${toAccusative(player2.name)} на ${evaluation.predictions.player1Percent}%. ${player2.name} угадывает ${toAccusative(player1.name)} на ${evaluation.predictions.player2Percent}%. Это не соревнование, а то, насколько ваши ожидания попали в реальные ответы.`,
+      explanation: `${player1.name} → ${player2.name}: ${evaluation.predictions.player1Percent}%. ${player2.name} → ${player1.name}: ${evaluation.predictions.player2Percent}%. Это не соревнование, а то, насколько ваши ожидания попали в реальные ответы.`,
     },
     likelyTo: evaluation.likelyTo,
     roast:

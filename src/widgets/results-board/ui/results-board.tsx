@@ -1,11 +1,17 @@
 import { NewCoupleButton } from "@/features/reset-session";
 import { RetryButton } from "@/features/retry-analysis";
 import { ShareButton } from "@/features/share-result";
-import { toAccusative } from "@/shared/lib/ru-name";
 import type { ComparisonView } from "@/entities/session";
 
-function SectionTitle({ children }: { children: string }) {
-  return <h2 className="font-serif text-3xl">{children}</h2>;
+function SectionTitle({ emoji, children }: { emoji: string; children: string }) {
+  return (
+    <h2 className="font-serif text-3xl">
+      <span className="mr-2" aria-hidden="true">
+        {emoji}
+      </span>
+      {children}
+    </h2>
+  );
 }
 
 export function ResultsBoard({ view }: { view: ComparisonView }) {
@@ -50,12 +56,12 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
       </section>
 
       <section>
-        <SectionTitle>Коротко о вас</SectionTitle>
+        <SectionTitle emoji="💬">Коротко о вас</SectionTitle>
         <p className="mt-3 text-base leading-relaxed text-foreground/90">{report.summary}</p>
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionTitle>Что вас объединяет</SectionTitle>
+        <SectionTitle emoji="💛">Что вас объединяет</SectionTitle>
         {report.strengths.map((card) => (
           <article key={card.title} className="rounded-3xl border border-border bg-card p-5">
             <h3 className="text-lg">{card.title}</h3>
@@ -65,7 +71,7 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionTitle>Где вы расходитесь</SectionTitle>
+        <SectionTitle emoji="⚡">Где вы расходитесь</SectionTitle>
         {report.differences.map((card) => (
           <article key={card.title} className="rounded-3xl border border-border bg-card p-5">
             <h3 className="text-lg">{card.title}</h3>
@@ -75,17 +81,17 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
       </section>
 
       <section className="rounded-[28px] border border-border p-6">
-        <SectionTitle>Насколько хорошо вы считываете друг друга</SectionTitle>
+        <SectionTitle emoji="👀">Насколько хорошо вы считываете друг друга</SectionTitle>
         <dl className="mt-5 flex flex-col gap-4">
           <div className="flex items-baseline justify-between gap-4">
             <dt>
-              {couple.player1.name} → {toAccusative(couple.player2.name)}
+              {couple.player1.name} → {couple.player2.name}
             </dt>
             <dd className="font-serif text-3xl">{predictions.player1Percent}%</dd>
           </div>
           <div className="flex items-baseline justify-between gap-4">
             <dt>
-              {couple.player2.name} → {toAccusative(couple.player1.name)}
+              {couple.player2.name} → {couple.player1.name}
             </dt>
             <dd className="font-serif text-3xl">{predictions.player2Percent}%</dd>
           </div>
@@ -94,7 +100,7 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionTitle>Неожиданное</SectionTitle>
+        <SectionTitle emoji="🎁">Неожиданное</SectionTitle>
         {report.surprisingAnswers.map((card) => (
           <article key={card.title} className="rounded-3xl border border-border bg-card p-5">
             <h3 className="text-lg">{card.title}</h3>
@@ -104,7 +110,7 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionTitle>Кто скорее</SectionTitle>
+        <SectionTitle emoji="🎯">Кто скорее</SectionTitle>
         {report.likelyTo.length === 0 ? (
           <p className="text-base leading-relaxed text-muted">
             По этим ответам нельзя уверенно определить, кто скорее.
@@ -121,18 +127,22 @@ export function ResultsBoard({ view }: { view: ComparisonView }) {
       </section>
 
       <section className="rounded-[28px] border border-accent/40 bg-[#1a1612] p-6">
-        <p className="text-sm tracking-[0.16em] text-accent uppercase">Лёгкий roast</p>
+        <p className="text-sm tracking-[0.16em] text-accent uppercase">
+          <span aria-hidden="true">🔥 </span>Лёгкий roast
+        </p>
         <p className="mt-3 text-lg leading-relaxed">{report.roast}</p>
       </section>
 
       <section className="rounded-[28px] border border-border bg-card p-6">
-        <p className="text-sm tracking-[0.16em] text-accent uppercase">Тёплое</p>
+        <p className="text-sm tracking-[0.16em] text-accent uppercase">
+          <span aria-hidden="true">🤍 </span>Тёплое
+        </p>
         <p className="mt-3 text-lg leading-relaxed">{report.positiveObservation}</p>
       </section>
 
       {report.achievements.length > 0 ? (
         <section className="flex flex-col gap-3">
-          <SectionTitle>Достижения</SectionTitle>
+          <SectionTitle emoji="🏆">Достижения</SectionTitle>
           {report.achievements.map((item) => (
             <article key={item.title} className="flex gap-4 rounded-3xl border border-border bg-card p-5">
               <span className="text-2xl" aria-hidden="true">

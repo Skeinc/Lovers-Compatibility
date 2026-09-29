@@ -2,6 +2,7 @@ import { QuizFlow } from "@/widgets/quiz-flow";
 import { usePlayerQuiz, useSessionActions } from "@/entities/session";
 import { Button } from "@/shared/ui/button";
 import { Screen } from "@/shared/ui/confirm-dialog";
+import { EmojiMark } from "@/shared/ui/emoji-mark";
 import { StickyBar } from "@/shared/ui/sticky-bar";
 
 export function PlayerPage() {
@@ -14,14 +15,15 @@ export function PlayerPage() {
   const first = quiz.player === "player1";
   return (
     <div className="flex flex-1 flex-col">
-      <Screen>
-        <p className="text-sm tracking-[0.18em] text-accent uppercase">{first ? quiz.selfName : "Второй заход"}</p>
+      <Screen centered>
+        <EmojiMark symbol={first ? "👀" : "🤫"} />
+        <p className="mt-6 text-sm tracking-[0.18em] text-accent uppercase">{first ? quiz.selfName : "Второй заход"}</p>
         <h1 className="mt-4 font-serif text-5xl leading-tight">
           {first ? "Сейчас отвечаешь ты." : "Теперь твоя очередь."}
         </h1>
-        <p className="mt-4 text-lg leading-relaxed text-muted">
+        <p className="mt-4 max-w-sm text-lg leading-relaxed text-muted">
           {first
-            ? "Партнёр увидит только итоговый результат."
+            ? "Партнёр увидит только итоговый результат. Не подглядывай."
             : "Отвечай честно. Партнёр уже ответил и пока ничего тебе не расскажет."}
         </p>
       </Screen>

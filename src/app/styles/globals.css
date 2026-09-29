@@ -36,6 +36,21 @@ textarea {
   background: radial-gradient(900px 420px at 50% -12%, rgba(214, 180, 138, 0.18), transparent 58%), #0c0b0f;
 }
 
+.emoji-float {
+  display: inline-block;
+  animation: emoji-float 2.8s ease-in-out infinite;
+}
+
+@keyframes emoji-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-6deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

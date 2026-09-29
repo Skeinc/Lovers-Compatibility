@@ -37,6 +37,14 @@ export function ConfirmDialog({
   );
 }
 
-export function Screen({ children }: { children: ReactNode }) {
-  return <main className="flex flex-1 flex-col py-8">{children}</main>;
+export function Screen({ children, centered = false }: { children: ReactNode; centered?: boolean }) {
+  return (
+    <main
+      className={
+        centered ? "flex flex-1 flex-col items-center justify-center py-10 text-center" : "flex flex-1 flex-col py-8"
+      }
+    >
+      {children}
+    </main>
+  );
 }

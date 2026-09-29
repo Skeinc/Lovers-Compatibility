@@ -12,6 +12,7 @@ import {
   type CoupleProfile,
 } from "@/entities/couple";
 import { useCoupleDraft } from "@/entities/session";
+import { BackButton } from "@/shared/ui/back-button";
 import { Button } from "@/shared/ui/button";
 import { ChoiceButton } from "@/shared/ui/choice-button";
 import { FieldLabel, TextArea, TextInput } from "@/shared/ui/field";
@@ -236,22 +237,22 @@ export function SetupPage() {
             {error}
           </p>
         ) : null}
-        {step > 0 ? (
-          <button
-            type="button"
-            className="self-start text-sm text-muted underline-offset-4 hover:underline"
-            onClick={() => {
-              setError(null);
-              update(draft, step - 1);
-            }}
-          >
-            Назад
-          </button>
-        ) : null}
         <p className="sr-only">{STEPS[Math.min(step, 3)]}</p>
       </div>
       <StickyBar>
-        <Button onClick={next}>{step === 4 ? "К первому игроку" : "Дальше"}</Button>
+        <div className="flex gap-3">
+          {step > 0 ? (
+            <BackButton
+              onClick={() => {
+                setError(null);
+                update(draft, step - 1);
+              }}
+            />
+          ) : null}
+          <Button className="w-auto min-w-0 flex-1" onClick={next}>
+            {step === 4 ? "К первому игроку" : "Дальше"}
+          </Button>
+        </div>
       </StickyBar>
     </div>
   );

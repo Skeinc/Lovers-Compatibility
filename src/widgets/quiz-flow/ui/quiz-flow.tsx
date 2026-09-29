@@ -5,7 +5,7 @@ import { FinishDialog } from "@/features/complete-player";
 import { QuestionView } from "@/features/answer-question";
 import { isValueFilled, QUESTIONS, substepsFor, type AnswerValue } from "@/entities/question";
 import { usePlayerQuiz, useSessionActions } from "@/entities/session";
-import { toAccusative } from "@/shared/lib/ru-name";
+import { BackButton } from "@/shared/ui/back-button";
 import { Button } from "@/shared/ui/button";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 import { StickyBar } from "@/shared/ui/sticky-bar";
@@ -33,12 +33,11 @@ export function QuizFlow() {
   const isFinal = quiz.questionIndex === QUESTIONS.length - 1 && stepIndex === steps.length - 1;
   const filled = isValueFilled(question, draft);
   const progress = ((quiz.questionIndex + (stepIndex + 1) / steps.length) / QUESTIONS.length) * 100;
-  const accusative = toAccusative(quiz.partnerName);
   const predicting = quiz.substep === "predict";
   const title = predicting
     ? question.kind === "text-predict"
-      ? `А теперь угадай три слова ${accusative}.`
-      : `Как думаешь, что выберет ${accusative}?`
+      ? `А теперь угадай, какие три слова напишет ${quiz.partnerName}.`
+      : `Как думаешь, что ответит ${quiz.partnerName}?`
     : question.kind === "choice-predict" || question.kind === "multi-predict"
       ? "А что выберешь ты?"
       : question.title;
@@ -63,7 +62,10 @@ export function QuizFlow() {
       <div className="flex flex-1 flex-col gap-6 py-6">
         <ProgressBar value={progress} label={`Вопрос ${quiz.questionIndex + 1} из ${QUESTIONS.length}`} />
         <div>
-          <p className="text-sm tracking-[0.16em] text-accent uppercase">{predicting ? "Про партнёра" : "Про тебя"}</p>
+          <p className="text-sm tracking-[0.16em] text-accent uppercase">
+            <span aria-hidden="true">{predicting ? "👀 " : "✍️ "}</span>
+            {predicting ? "Про партнёра" : "Про тебя"}
+          </p>
           <h1 className="mt-3 font-serif text-4xl leading-tight text-balance">{title}</h1>
           <p className="mt-3 text-base leading-relaxed text-muted">
             {title === question.title ? question.description : question.title}
@@ -79,18 +81,14 @@ export function QuizFlow() {
           partnerName={quiz.partnerName}
           onChange={persist}
         />
-        <button
-          type="button"
-          className="self-start text-sm text-muted underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          onClick={() => dispatch({ type: "back" })}
-        >
-          Назад
-        </button>
       </div>
       <StickyBar>
-        <Button disabled={!filled} onClick={continueQuiz}>
-          {isFinal ? "Завершить" : "Дальше"}
-        </Button>
+        <div className="flex gap-3">
+          <BackButton onClick={() => dispatch({ type: "back" })} />
+          <Button className="w-auto min-w-0 flex-1" disabled={!filled} onClick={continueQuiz}>
+            {isFinal ? "Завершить" : "Дальше"}
+          </Button>
+        </div>
       </StickyBar>
       <FinishDialog
         open={confirmOpen}
